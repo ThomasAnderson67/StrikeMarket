@@ -36,10 +36,17 @@ export interface Config {
 }
 
 export function loadConfig(): Config {
-  const adminKeyPath = process.env.ADMIN_KEYPAIR_PATH || "~/.config/solana/id.json";
-  const resolvedPath = adminKeyPath.replace("~", process.env.HOME || "");
-  const adminKeyData = JSON.parse(fs.readFileSync(resolvedPath, "utf-8"));
-  const adminKeypair = Keypair.fromSecretKey(Uint8Array.from(adminKeyData));
+  // Support keypair via env var (Railway/Docker) or file path (local dev)
+  let adminKeypair: Keypair;
+  if (process.env.ADMIN_KEYPAIR_JSON) {
+    const keyData = JSON.parse(process.env.ADMIN_KEYPAIR_JSON);
+    adminKeypair = Keypair.fromSecretKey(Uint8Array.from(keyData));
+  } else {
+    const adminKeyPath = process.env.ADMIN_KEYPAIR_PATH || "~/.config/solana/id.json";
+    const resolvedPath = adminKeyPath.replace("~", process.env.HOME || "");
+    const adminKeyData = JSON.parse(fs.readFileSync(resolvedPath, "utf-8"));
+    adminKeypair = Keypair.fromSecretKey(Uint8Array.from(adminKeyData));
+  }
 
   return {
     port: parseInt(process.env.PORT || "3000"),

@@ -177,9 +177,29 @@ src/
 - **Polymarket service:** COMPLETE — Gamma/CLOB API, 16 tests passing
 - **Epoch scheduler:** COMPLETE — Auto lifecycle, 15 tests passing
 - **E2E devnet test:** COMPLETE — Full lifecycle verified (init→stake→commit→reveal→score→fund→claim→close)
+- **Coordinator deployment:** COMPLETE — Dockerfile + Railway config
 
-## Next Steps (V1 completion)
-1. **Coordinator deployment** — Docker/hosting, production env config
+## Deployment (Railway)
+
+```bash
+# Build locally
+cd coordinator && npm run build
+
+# Docker
+docker build -t enelbot-coordinator coordinator/
+```
+
+### Required env vars on Railway
+| Variable | Description |
+|----------|-------------|
+| `ADMIN_KEYPAIR_JSON` | JSON array of admin secret key bytes (from `~/.config/solana/id.json`) |
+| `SOLANA_RPC_URL` | Solana RPC (default: `https://api.devnet.solana.com`) |
+| `JWT_SECRET` | Random secret for JWT signing (**must change from default**) |
+| `PROGRAM_ID` | Program ID (default: `2BewLeJcdz8cmdjo1WvhtNphFoc7wk9V6fXUk5vzb19Q`) |
+| `ENEL_MINT` | Token mint (default: `DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk`) |
+| `ADMIN_TOKEN_ACCOUNT` | Admin ATA (default: `CAuWzHjPSChSkyqw3KNK6h3oxPSYDPJJtDWC8yvVYWK6`) |
+| `EPOCH_REWARD_AMOUNT` | Reward per epoch in base units (default: `1000000000000` = 1M $ENEL) |
+| `PORT` | Server port (default: `3000`, Railway sets this automatically) |
 
 ## Conventions
 - TypeScript strict in coordinator
