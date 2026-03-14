@@ -8,11 +8,14 @@ skip-lint = false
 [programs.localnet]
 enelbot = "2BewLeJcdz8cmdjo1WvhtNphFoc7wk9V6fXUk5vzb19Q"
 
+[programs.devnet]
+enelbot = "2BewLeJcdz8cmdjo1WvhtNphFoc7wk9V6fXUk5vzb19Q"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
