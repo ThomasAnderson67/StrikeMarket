@@ -1,24 +1,24 @@
 import { PublicKey } from "@solana/web3.js";
 import { SolanaService } from "./solana.js";
-import { DriftService, ChallengeMarket, MarketOutcome } from "./drift.js";
+import { PolymarketService, ChallengeMarket, MarketOutcome } from "./polymarket.js";
 import { MinerPrediction, MinerScore, scoreAllMiners } from "./scoring.js";
 import { Config, calculateTier } from "../config.js";
 
 // ── Epoch lifecycle manager ────────────────────────────────────────────
 //
 // Epoch timeline:
-//   T=0h  ──── epoch starts, scan Drift, build challenge set
+//   T=0h  ──── epoch starts, scan Polymarket, build challenge set
 //   T=22h ──── commit window closes
 //   T=24h ──── epoch ends, advance epoch, reveal window opens
 //   T=26h ──── reveal window closes, score miners
 //   T=26h+ ─── fund epoch, miners can claim
 //
-// Zero-market handling: if zero eligible Drift BET markets exist
+// Zero-market handling: if zero eligible Polymarket markets exist
 // at epoch start, auto-skip the epoch.
 
 export class EpochManager {
   private solana: SolanaService;
-  private drift: DriftService;
+  private polymarket: PolymarketService;
   private config: Config;
 
   /** Current epoch's challenge markets (cached at epoch start) */
@@ -27,10 +27,10 @@ export class EpochManager {
   /** Resolved outcomes (cached after reveal window) */
   private outcomes: MarketOutcome[] = [];
 
-  constructor(config: Config, solana: SolanaService, drift: DriftService) {
+  constructor(config: Config, solana: SolanaService, polymarket: PolymarketService) {
     this.config = config;
     this.solana = solana;
-    this.drift = drift;
+    this.polymarket = polymarket;
   }
 
   getChallengeMarkets(): ChallengeMarket[] {
@@ -46,15 +46,15 @@ export class EpochManager {
    * If zero markets found, returns empty (coordinator should auto-skip).
    */
   async startEpoch(): Promise<{ marketCount: number; skipped: boolean }> {
-    const driftMarkets = await this.drift.scanMarkets();
+    const polymarketMarkets = await this.polymarket.scanMarkets();
 
-    if (driftMarkets.length === 0) {
-      console.log("[epoch] No eligible Drift BET markets. Epoch will be skipped.");
+    if (polymarketMarkets.length === 0) {
+      console.log("[epoch] No eligible Polymarket markets. Epoch will be skipped.");
       this.challengeMarkets = [];
       return { marketCount: 0, skipped: true };
     }
 
-    this.challengeMarkets = this.drift.buildChallengeSet(driftMarkets);
+    this.challengeMarkets = this.polymarket.buildChallengeSet(polymarketMarkets);
     this.outcomes = [];
 
     console.log(
@@ -72,8 +72,8 @@ export class EpochManager {
     scores: MinerScore[];
     fundTxSig: string;
   }> {
-    // 1. Resolve Drift outcomes
-    this.outcomes = await this.drift.resolveOutcomes(this.challengeMarkets);
+    // 1. Resolve Polymarket outcomes
+    this.outcomes = await this.polymarket.resolveOutcomes(this.challengeMarkets);
     console.log(`[epoch] Resolved ${this.outcomes.length} market outcomes`);
 
     // 2. Read all revealed commitments from chain

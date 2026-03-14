@@ -46,7 +46,7 @@ export function registerChallengeRoutes(
           marketCount: markets.length,
           markets: markets.map((m) => ({
             marketId: m.marketId.toString("hex"),
-            driftMarketId: m.driftMarketId,
+            sourceMarketId: m.sourceMarketId,
             question: m.question,
           })),
         };

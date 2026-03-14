@@ -1,6 +1,6 @@
 import { PublicKey } from "@solana/web3.js";
 import { tierMultiplier } from "../config.js";
-import type { ChallengeMarket, MarketOutcome } from "./drift.js";
+import type { ChallengeMarket, MarketOutcome } from "./polymarket.js";
 
 // ── Scoring engine ─────────────────────────────────────────────────────
 //
@@ -44,26 +44,26 @@ export function scoreMiner(
   const miner = predictions[0].miner;
   const tier = predictions[0].tier;
 
-  // Build outcome lookup: driftMarketId → outcome
+  // Build outcome lookup: sourceMarketId → outcome
   const outcomeMap = new Map<string, boolean | null>();
   for (const o of outcomes) {
-    outcomeMap.set(o.driftMarketId, o.outcome);
+    outcomeMap.set(o.sourceMarketId, o.outcome);
   }
 
-  // Build marketId → driftMarketId lookup
-  const marketIdToDrift = new Map<string, string>();
+  // Build marketId → sourceMarketId lookup
+  const marketIdToSource = new Map<string, string>();
   for (const cm of challengeMarkets) {
-    marketIdToDrift.set(cm.marketId.toString("hex"), cm.driftMarketId);
+    marketIdToSource.set(cm.marketId.toString("hex"), cm.sourceMarketId);
   }
 
   let correctCount = 0;
   let scoredMarkets = 0;
 
   for (const pred of predictions) {
-    const driftId = marketIdToDrift.get(pred.marketId.toString("hex"));
-    if (!driftId) continue;
+    const sourceId = marketIdToSource.get(pred.marketId.toString("hex"));
+    if (!sourceId) continue;
 
-    const outcome = outcomeMap.get(driftId);
+    const outcome = outcomeMap.get(sourceId);
 
     // Voided markets (outcome === null) are excluded from scoring
     if (outcome === null || outcome === undefined) continue;

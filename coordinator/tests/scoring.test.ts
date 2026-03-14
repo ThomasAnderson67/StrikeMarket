@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { PublicKey, Keypair } from "@solana/web3.js";
 import { createHash } from "crypto";
 import { scoreMiner, scoreAllMiners, MinerPrediction } from "../src/services/scoring.js";
-import type { ChallengeMarket, MarketOutcome } from "../src/services/drift.js";
+import type { ChallengeMarket, MarketOutcome } from "../src/services/polymarket.js";
 
 // ── Test helpers ──────────────────────────────────────────────────────
 
@@ -17,7 +17,7 @@ function makeMarketId(name: string): Buffer {
 function makeChallengeMarket(driftId: string): ChallengeMarket {
   return {
     marketId: makeMarketId(driftId),
-    driftMarketId: driftId,
+    sourceMarketId: driftId,
     question: `Question for ${driftId}`,
   };
 }
@@ -40,7 +40,7 @@ describe("scoreMiner", () => {
       tier: 1,
     }));
     const outcomes: MarketOutcome[] = markets.map((m) => ({
-      driftMarketId: m.driftMarketId,
+      sourceMarketId: m.sourceMarketId,
       outcome: true, // YES won
     }));
 
@@ -60,7 +60,7 @@ describe("scoreMiner", () => {
       tier: 3,
     }));
     const outcomes: MarketOutcome[] = markets.map((m) => ({
-      driftMarketId: m.driftMarketId,
+      sourceMarketId: m.sourceMarketId,
       outcome: false, // NO won
     }));
 
@@ -78,7 +78,7 @@ describe("scoreMiner", () => {
       tier: 2,
     }));
     const outcomes: MarketOutcome[] = markets.map((m) => ({
-      driftMarketId: m.driftMarketId,
+      sourceMarketId: m.sourceMarketId,
       outcome: false, // NO won — all wrong
     }));
 
@@ -96,9 +96,9 @@ describe("scoreMiner", () => {
       { miner, marketId: markets[2].marketId, prediction: 1, tier: 1 }, // NO  - correct
     ];
     const outcomes: MarketOutcome[] = [
-      { driftMarketId: "market-a", outcome: true },
-      { driftMarketId: "market-b", outcome: false },
-      { driftMarketId: "market-c", outcome: false },
+      { sourceMarketId: "market-a", outcome: true },
+      { sourceMarketId: "market-b", outcome: false },
+      { sourceMarketId: "market-c", outcome: false },
     ];
 
     const result = scoreMiner(predictions, outcomes, markets);
@@ -116,9 +116,9 @@ describe("scoreMiner", () => {
       tier: 2,
     }));
     const outcomes: MarketOutcome[] = [
-      { driftMarketId: "market-a", outcome: true },
-      { driftMarketId: "market-b", outcome: null }, // voided
-      { driftMarketId: "market-c", outcome: true },
+      { sourceMarketId: "market-a", outcome: true },
+      { sourceMarketId: "market-b", outcome: null }, // voided
+      { sourceMarketId: "market-c", outcome: true },
     ];
 
     const result = scoreMiner(predictions, outcomes, markets);
@@ -141,7 +141,7 @@ describe("scoreMiner", () => {
       { miner, marketId: unknownMarketId, prediction: 2, tier: 1 },
     ];
     const outcomes: MarketOutcome[] = [
-      { driftMarketId: "market-a", outcome: true },
+      { sourceMarketId: "market-a", outcome: true },
     ];
 
     const result = scoreMiner(predictions, outcomes, markets);
@@ -155,7 +155,7 @@ describe("scoreMiner", () => {
       { miner, marketId: markets[0].marketId, prediction: 2, tier: 0 },
     ];
     const outcomes: MarketOutcome[] = [
-      { driftMarketId: "market-a", outcome: true },
+      { sourceMarketId: "market-a", outcome: true },
     ];
 
     const result = scoreMiner(predictions, outcomes, markets);
@@ -183,8 +183,8 @@ describe("scoreAllMiners", () => {
       { miner: miner2, marketId: markets[1].marketId, prediction: 1, tier: 3 }, // NO  - correct
     ];
     const outcomes: MarketOutcome[] = [
-      { driftMarketId: "market-x", outcome: true },
-      { driftMarketId: "market-y", outcome: false },
+      { sourceMarketId: "market-x", outcome: true },
+      { sourceMarketId: "market-y", outcome: false },
     ];
 
     const results = scoreAllMiners(predictions, outcomes, markets);
@@ -210,8 +210,8 @@ describe("scoreAllMiners", () => {
       { miner: miner2, marketId: markets[1].marketId, prediction: 2, tier: 1 }, // wrong
     ];
     const outcomes: MarketOutcome[] = [
-      { driftMarketId: "market-x", outcome: true },
-      { driftMarketId: "market-y", outcome: false },
+      { sourceMarketId: "market-x", outcome: true },
+      { sourceMarketId: "market-y", outcome: false },
     ];
 
     const results = scoreAllMiners(predictions, outcomes, markets);
@@ -231,8 +231,8 @@ describe("scoreAllMiners", () => {
       { miner, marketId: markets[1].marketId, prediction: 1, tier: 2 },
     ];
     const outcomes: MarketOutcome[] = [
-      { driftMarketId: "market-x", outcome: null },
-      { driftMarketId: "market-y", outcome: null },
+      { sourceMarketId: "market-x", outcome: null },
+      { sourceMarketId: "market-y", outcome: null },
     ];
 
     const results = scoreAllMiners(predictions, outcomes, markets);

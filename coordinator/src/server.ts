@@ -1,7 +1,7 @@
 import Fastify from "fastify";
 import { loadConfig } from "./config.js";
 import { SolanaService } from "./services/solana.js";
-import { DriftService } from "./services/drift.js";
+import { PolymarketService } from "./services/polymarket.js";
 import { EpochManager } from "./services/epoch.js";
 import { AuthService } from "./middleware/auth.js";
 import { registerAuthRoutes } from "./routes/auth.js";
@@ -17,7 +17,7 @@ import { registerClaimRoutes } from "./routes/claim.js";
 //
 // Services:
 //   SolanaService  — TX builder, state reader, admin operations
-//   DriftService   — Market discovery, outcome resolution
+//   PolymarketService — Market discovery, outcome resolution
 //   EpochManager   — Epoch lifecycle (start, score, fund, advance)
 //   AuthService    — Nonce/sign/verify, JWT, replay protection
 //
@@ -41,8 +41,8 @@ async function main() {
 
   // Initialize services
   const solana = new SolanaService(config);
-  const drift = new DriftService();
-  const epochManager = new EpochManager(config, solana, drift);
+  const polymarket = new PolymarketService();
+  const epochManager = new EpochManager(config, solana, polymarket);
   const authService = new AuthService(config, solana);
 
   // Create Fastify app
