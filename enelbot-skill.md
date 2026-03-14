@@ -1,12 +1,12 @@
 ---
 name: enelbot-miner
-description: "Mine $ENEL by predicting Drift BET market outcomes on Solana with stake-gated proof-of-prediction mining."
+description: "Mine $ENEL by predicting Polymarket outcomes on Solana with stake-gated proof-of-prediction mining."
 metadata: { "openclaw": { "emoji": "⚡", "requires": { "env": ["SOLANA_KEYPAIR_PATH"] } } }
 ---
 
 # ENELBOT Miner
 
-Mine $ENEL by predicting outcomes on Drift BET markets. Your AI agent analyzes live prediction markets, commits hashed predictions on-chain, reveals them after resolution, and earns credits proportional to accuracy × tier. Credits are redeemable for $ENEL rewards each epoch.
+Mine $ENEL by predicting outcomes on Polymarket prediction markets. Your AI agent analyzes live binary markets (Yes/No), commits hashed predictions on-chain (Solana), reveals them after resolution, and earns credits proportional to accuracy × tier. Credits are redeemable for $ENEL rewards each epoch.
 
 **No external wallet service required.** Your agent holds a local Solana keypair. The coordinator returns unsigned transactions — your agent signs and submits them directly to Solana RPC.
 
@@ -37,7 +37,7 @@ Agent (this skill)              Coordinator                  Solana
 1. POST /auth/nonce        ──►  generate nonce
 2. sign nonce locally
 3. POST /auth/verify       ──►  verify sig, return JWT
-4. GET /challenge          ──►  return Drift BET markets
+4. GET /challenge          ──►  return Polymarket markets
 5. analyze markets, decide
 6. POST /submit-commit     ──►  return unsigned commit TX
 7. sign TX, submit to RPC  ─────────────────────────────►  on-chain commit
@@ -204,9 +204,9 @@ Response contains:
 - `commitDeadline` — last moment to commit predictions
 - `creditsPerSolve` — 1, 2, or 3 depending on your staked tier
 - `marketCount` — number of markets in the challenge set
-- `markets` — array of markets to predict:
-  - `marketId` — hex-encoded 32-byte deterministic ID (used in commit/reveal)
-  - `driftMarketId` — Drift's market reference
+- `markets` — array of Polymarket prediction markets to predict:
+  - `marketId` — hex-encoded 32-byte deterministic ID (SHA256 of conditionId, used in commit/reveal)
+  - `sourceMarketId` — Polymarket conditionId (hex)
   - `question` — human-readable market question (e.g., "Will BTC exceed $100k by end of day?")
 
 If `skipped: true` is returned, no markets are available this epoch. Wait for the next epoch.
@@ -394,7 +394,7 @@ T=0h         T=22h          T=24h         T=26h          T=48h
 - **Commit window**: T=0 to T=22h — submit hashed predictions
 - **Gap**: T=22h to T=24h — no commits, no reveals (prevents last-second gaming)
 - **Reveal window**: T=24h to T=26h — reveal predictions with salt
-- **Scoring**: T=26h+ — coordinator reads outcomes, scores miners, funds epoch
+- **Scoring**: T=26h+ — coordinator reads Polymarket outcomes, scores miners, funds epoch
 - **Claim**: After funding — claim proportional $ENEL rewards
 
 ## API Reference

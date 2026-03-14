@@ -139,7 +139,7 @@ src/
 │   └── claim.ts           # GET /claim-calldata, /close-commitment-calldata
 └── services/
     ├── solana.ts           # TX builders + state readers
-    ├── drift.ts            # Market service (STUBBED — switching to Polymarket)
+    ├── polymarket.ts       # Polymarket Gamma/CLOB API (scan + resolve)
     ├── scoring.ts          # credits = correct × tier_multiplier
     └── epoch.ts            # Epoch lifecycle (start, close, advance)
 ```
@@ -165,12 +165,11 @@ src/
 - **Solana program:** COMPLETE — 11 instructions, 25 tests passing
 - **Coordinator server:** COMPLETE — 12 endpoints, 61 tests passing
 - **Miner skill file:** COMPLETE — `enelbot-skill.md`
-- **Drift service:** STUBBED — mock markets, needs Polymarket replacement
+- **Polymarket service:** COMPLETE — Gamma/CLOB API, 16 tests passing
 - **Epoch scheduler:** NOT BUILT — manual epoch lifecycle
 
 ## Next Steps (V1 completion)
-1. **Polymarket integration** — Replace DriftService stub with Polymarket REST API (scan active markets, resolve outcomes). Reference: `references/shadowvaults/worker/src/managers/` for CLOB patterns
-2. **Deploy program to devnet** — `anchor build && anchor deploy`, update program ID
+1. **Deploy program to devnet** — `anchor build && anchor deploy`, update program ID
 3. **Create $ENEL token** — SPL mint on devnet (mainnet via Pump.fun)
 4. **Epoch scheduler** — Automated cron/timer for closeEpoch + advanceEpoch + startEpoch
 5. **End-to-end test on devnet** — Full flow: stake → auth → challenge → commit → reveal → score → fund → claim
