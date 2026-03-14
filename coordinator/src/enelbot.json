@@ -1,0 +1,1549 @@
+{
+  "address": "2BewLeJcdz8cmdjo1WvhtNphFoc7wk9V6fXUk5vzb19Q",
+  "metadata": {
+    "name": "enelbot",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Proof-of-prediction mining protocol on Solana"
+  },
+  "instructions": [
+    {
+      "name": "advance_epoch",
+      "discriminator": [
+        93,
+        138,
+        234,
+        218,
+        241,
+        230,
+        132,
+        38
+      ],
+      "accounts": [
+        {
+          "name": "global_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "current_epoch_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  112,
+                  111,
+                  99,
+                  104
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "global_state.current_epoch",
+                "account": "GlobalState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_epoch_state",
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "global_state"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "market_count",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "claim_rewards",
+      "discriminator": [
+        4,
+        144,
+        132,
+        71,
+        116,
+        23,
+        151,
+        80
+      ],
+      "accounts": [
+        {
+          "name": "global_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "epoch_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  112,
+                  111,
+                  99,
+                  104
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "epoch_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "miner_epoch_record",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  110,
+                  101,
+                  114,
+                  95,
+                  101,
+                  112,
+                  111,
+                  99,
+                  104
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "epoch_id"
+              },
+              {
+                "kind": "account",
+                "path": "miner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "miner_token_account",
+          "writable": true
+        },
+        {
+          "name": "miner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "miner_epoch_record"
+          ]
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "close_commitment",
+      "discriminator": [
+        159,
+        80,
+        4,
+        54,
+        45,
+        135,
+        38,
+        128
+      ],
+      "accounts": [
+        {
+          "name": "commitment",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  109,
+                  105,
+                  116,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "epoch_id"
+              },
+              {
+                "kind": "account",
+                "path": "miner"
+              },
+              {
+                "kind": "arg",
+                "path": "market_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "miner_epoch_record",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  110,
+                  101,
+                  114,
+                  95,
+                  101,
+                  112,
+                  111,
+                  99,
+                  104
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "epoch_id"
+              },
+              {
+                "kind": "account",
+                "path": "miner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "miner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "commitment"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch_id",
+          "type": "u64"
+        },
+        {
+          "name": "market_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "commit_prediction",
+      "discriminator": [
+        92,
+        250,
+        182,
+        231,
+        10,
+        22,
+        234,
+        71
+      ],
+      "accounts": [
+        {
+          "name": "global_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "epoch_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  112,
+                  111,
+                  99,
+                  104
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "global_state.current_epoch",
+                "account": "GlobalState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "miner_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  110,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "miner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "commitment",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  109,
+                  105,
+                  116,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "global_state.current_epoch",
+                "account": "GlobalState"
+              },
+              {
+                "kind": "account",
+                "path": "miner"
+              },
+              {
+                "kind": "arg",
+                "path": "market_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "miner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "miner_state"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "market_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "fund_epoch",
+      "discriminator": [
+        62,
+        200,
+        22,
+        58,
+        233,
+        83,
+        165,
+        196
+      ],
+      "accounts": [
+        {
+          "name": "global_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "epoch_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  112,
+                  111,
+                  99,
+                  104
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "epoch_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin_token_account",
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "global_state"
+          ]
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch_id",
+          "type": "u64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "global_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "epoch_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  112,
+                  111,
+                  99,
+                  104
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "enel_mint"
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "InitializeParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "reveal_prediction",
+      "discriminator": [
+        76,
+        137,
+        127,
+        4,
+        163,
+        5,
+        110,
+        64
+      ],
+      "accounts": [
+        {
+          "name": "global_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "epoch_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  112,
+                  111,
+                  99,
+                  104
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "epoch_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "commitment",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  109,
+                  105,
+                  116,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "epoch_id"
+              },
+              {
+                "kind": "account",
+                "path": "miner"
+              },
+              {
+                "kind": "arg",
+                "path": "market_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "miner",
+          "signer": true,
+          "relations": [
+            "commitment"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch_id",
+          "type": "u64"
+        },
+        {
+          "name": "market_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "salt",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "prediction",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "score_miner",
+      "discriminator": [
+        184,
+        70,
+        211,
+        155,
+        99,
+        59,
+        193,
+        158
+      ],
+      "accounts": [
+        {
+          "name": "global_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "epoch_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  112,
+                  111,
+                  99,
+                  104
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "epoch_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "miner_epoch_record",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  110,
+                  101,
+                  114,
+                  95,
+                  101,
+                  112,
+                  111,
+                  99,
+                  104
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "epoch_id"
+              },
+              {
+                "kind": "account",
+                "path": "miner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "miner",
+          "docs": [
+            "because the coordinator (admin) is trusted to score valid miners."
+          ]
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "global_state"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch_id",
+          "type": "u64"
+        },
+        {
+          "name": "credits",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "stake",
+      "discriminator": [
+        206,
+        176,
+        202,
+        18,
+        200,
+        209,
+        179,
+        108
+      ],
+      "accounts": [
+        {
+          "name": "global_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "miner_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  110,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "miner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "miner_token_account",
+          "writable": true
+        },
+        {
+          "name": "miner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "unstake",
+      "discriminator": [
+        90,
+        95,
+        107,
+        42,
+        205,
+        124,
+        50,
+        225
+      ],
+      "accounts": [
+        {
+          "name": "miner_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  110,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "miner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "miner",
+          "signer": true,
+          "relations": [
+            "miner_state"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "withdraw",
+      "discriminator": [
+        183,
+        18,
+        70,
+        156,
+        148,
+        109,
+        161,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "global_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "miner_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  110,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "miner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "miner_token_account",
+          "writable": true
+        },
+        {
+          "name": "miner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "miner_state"
+          ]
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Commitment",
+      "discriminator": [
+        61,
+        112,
+        129,
+        128,
+        24,
+        147,
+        77,
+        87
+      ]
+    },
+    {
+      "name": "EpochState",
+      "discriminator": [
+        191,
+        63,
+        139,
+        237,
+        144,
+        12,
+        223,
+        210
+      ]
+    },
+    {
+      "name": "GlobalState",
+      "discriminator": [
+        163,
+        46,
+        74,
+        168,
+        216,
+        123,
+        133,
+        98
+      ]
+    },
+    {
+      "name": "MinerEpochRecord",
+      "discriminator": [
+        127,
+        84,
+        72,
+        253,
+        140,
+        63,
+        205,
+        64
+      ]
+    },
+    {
+      "name": "MinerState",
+      "discriminator": [
+        171,
+        93,
+        72,
+        78,
+        139,
+        153,
+        97,
+        8
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InsufficientStake",
+      "msg": "Insufficient stake for minimum tier"
+    },
+    {
+      "code": 6001,
+      "name": "UnstakePending",
+      "msg": "Cannot stake while unstake is pending"
+    },
+    {
+      "code": 6002,
+      "name": "NothingStaked",
+      "msg": "Nothing staked"
+    },
+    {
+      "code": 6003,
+      "name": "AlreadyUnstaking",
+      "msg": "Already unstaking"
+    },
+    {
+      "code": 6004,
+      "name": "NoUnstakePending",
+      "msg": "No unstake pending"
+    },
+    {
+      "code": 6005,
+      "name": "CooldownNotElapsed",
+      "msg": "Cooldown period has not elapsed"
+    },
+    {
+      "code": 6006,
+      "name": "CommitWindowClosed",
+      "msg": "Commit window is not open"
+    },
+    {
+      "code": 6007,
+      "name": "NotEligible",
+      "msg": "Not eligible to mine"
+    },
+    {
+      "code": 6008,
+      "name": "RevealWindowClosed",
+      "msg": "Reveal window is not open"
+    },
+    {
+      "code": 6009,
+      "name": "HashMismatch",
+      "msg": "Hash mismatch on reveal"
+    },
+    {
+      "code": 6010,
+      "name": "AlreadyRevealed",
+      "msg": "Commitment already revealed"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidPrediction",
+      "msg": "Invalid prediction value (must be 1=NO or 2=YES)"
+    },
+    {
+      "code": 6012,
+      "name": "InvalidCredits",
+      "msg": "Credits exceed maximum for market count and tier"
+    },
+    {
+      "code": 6013,
+      "name": "EpochNotEnded",
+      "msg": "Epoch has not ended yet"
+    },
+    {
+      "code": 6014,
+      "name": "AlreadyFunded",
+      "msg": "Epoch already funded"
+    },
+    {
+      "code": 6015,
+      "name": "EpochNotFunded",
+      "msg": "Epoch not funded yet"
+    },
+    {
+      "code": 6016,
+      "name": "NoCredits",
+      "msg": "No credits for this epoch"
+    },
+    {
+      "code": 6017,
+      "name": "AlreadyClaimed",
+      "msg": "Already claimed for this epoch"
+    },
+    {
+      "code": 6018,
+      "name": "MustClaimFirst",
+      "msg": "Must claim rewards before closing commitments"
+    },
+    {
+      "code": 6019,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    }
+  ],
+  "types": [
+    {
+      "name": "Commitment",
+      "docs": [
+        "Single prediction commitment (one per miner per market per epoch).",
+        "Seeds: [\"commitment\", epoch.to_le_bytes(), miner_pubkey, market_id]",
+        "",
+        "Commit-reveal state machine:",
+        "COMMITTED ──reveal()──▶ REVEALED ──score()──▶ SCORED",
+        "(hash set)              (prediction set)      (credits computed off-chain)"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "miner",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "market_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "revealed",
+            "type": "bool"
+          },
+          {
+            "name": "prediction",
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EpochState",
+      "docs": [
+        "Per-epoch state tracking credits, funding, and claims.",
+        "Seeds: [\"epoch\", epoch_id.to_le_bytes()]"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "epoch_id",
+            "type": "u64"
+          },
+          {
+            "name": "epoch_start",
+            "type": "i64"
+          },
+          {
+            "name": "total_credits",
+            "type": "u64"
+          },
+          {
+            "name": "funded",
+            "type": "bool"
+          },
+          {
+            "name": "reward_amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_claimed",
+            "type": "u64"
+          },
+          {
+            "name": "market_count",
+            "type": "u16"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GlobalState",
+      "docs": [
+        "Global configuration, one per program deployment.",
+        "Seeds: [\"global\"]"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "enel_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "current_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "epoch_duration",
+            "type": "i64"
+          },
+          {
+            "name": "commit_end_offset",
+            "type": "i64"
+          },
+          {
+            "name": "reveal_start_offset",
+            "type": "i64"
+          },
+          {
+            "name": "reveal_end_offset",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InitializeParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "epoch_duration",
+            "type": "i64"
+          },
+          {
+            "name": "commit_end_offset",
+            "type": "i64"
+          },
+          {
+            "name": "reveal_start_offset",
+            "type": "i64"
+          },
+          {
+            "name": "reveal_end_offset",
+            "type": "i64"
+          },
+          {
+            "name": "market_count",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MinerEpochRecord",
+      "docs": [
+        "Per-miner per-epoch scoring record. Created by coordinator (admin),",
+        "used by miner to claim rewards.",
+        "Seeds: [\"miner_epoch\", epoch_id.to_le_bytes(), miner_pubkey]"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "miner",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "credits",
+            "type": "u64"
+          },
+          {
+            "name": "claimed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MinerState",
+      "docs": [
+        "Per-miner staking state.",
+        "Seeds: [\"miner\", miner_pubkey]"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "miner",
+            "type": "pubkey"
+          },
+          {
+            "name": "staked_amount",
+            "type": "u64"
+          },
+          {
+            "name": "tier",
+            "type": "u8"
+          },
+          {
+            "name": "unstake_requested_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ]
+}
