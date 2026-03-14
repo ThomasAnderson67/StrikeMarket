@@ -3,6 +3,7 @@ import { loadConfig } from "./config.js";
 import { SolanaService } from "./services/solana.js";
 import { PolymarketService } from "./services/polymarket.js";
 import { EpochManager } from "./services/epoch.js";
+import { EpochScheduler } from "./services/scheduler.js";
 import { AuthService } from "./middleware/auth.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerChallengeRoutes } from "./routes/challenge.js";
@@ -73,17 +74,11 @@ async function main() {
   registerEpochRoutes(app, solana);
   registerClaimRoutes(app, authService, solana);
 
-  // Start epoch on boot (scan markets, build challenge set)
-  try {
-    const result = await epochManager.startEpoch();
-    if (result.skipped) {
-      console.log("[boot] No markets available. Waiting for next epoch.");
-    } else {
-      console.log(`[boot] Challenge set ready: ${result.marketCount} markets`);
-    }
-  } catch (err) {
-    console.error("[boot] Failed to initialize epoch:", err);
-  }
+  // Initialize epoch scheduler
+  const scheduler = new EpochScheduler(config, solana, epochManager);
+
+  // Expose scheduler status on health endpoint
+  app.get("/v1/scheduler", async () => scheduler.getStatus());
 
   // Start server
   await app.listen({ port: config.port, host: config.host });
@@ -91,9 +86,13 @@ async function main() {
     `[server] ENELBOT Coordinator running on ${config.host}:${config.port}`
   );
 
+  // Start scheduler after server is listening
+  await scheduler.start();
+
   // Graceful shutdown
   const shutdown = async () => {
     console.log("[server] Shutting down...");
+    scheduler.stop();
     authService.stop();
     await app.close();
     process.exit(0);

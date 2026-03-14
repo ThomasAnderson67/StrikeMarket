@@ -141,7 +141,8 @@ src/
     ├── solana.ts           # TX builders + state readers
     ├── polymarket.ts       # Polymarket Gamma/CLOB API (scan + resolve)
     ├── scoring.ts          # credits = correct × tier_multiplier
-    └── epoch.ts            # Epoch lifecycle (start, close, advance)
+    ├── epoch.ts            # Epoch lifecycle (start, close, advance)
+    └── scheduler.ts        # Automated epoch state machine (poll-based)
 ```
 
 ### API Endpoints
@@ -160,6 +161,7 @@ src/
 | POST | `/v1/submit-withdraw` | JWT | Unsigned withdraw TX |
 | GET | `/v1/claim-calldata` | JWT | Unsigned claim TX(s) |
 | GET | `/v1/close-commitment-calldata` | JWT | Unsigned close TX |
+| GET | `/v1/scheduler` | No | Scheduler phase & epoch timing |
 
 ## Devnet Addresses
 - **Program:** `2BewLeJcdz8cmdjo1WvhtNphFoc7wk9V6fXUk5vzb19Q`
@@ -170,14 +172,13 @@ src/
 ## Build Status (as of 2026-03-14)
 - **Solana program:** COMPLETE — 11 instructions, 25 tests, deployed to devnet
 - **$ENEL token:** COMPLETE — SPL mint on devnet, 100B minted
-- **Coordinator server:** COMPLETE — 12 endpoints, 70 tests passing
+- **Coordinator server:** COMPLETE — 13 endpoints, 85 tests passing
 - **Miner skill file:** COMPLETE — `enelbot-skill.md`
 - **Polymarket service:** COMPLETE — Gamma/CLOB API, 16 tests passing
-- **Epoch scheduler:** NOT BUILT — manual epoch lifecycle
+- **Epoch scheduler:** COMPLETE — Auto lifecycle, 15 tests passing
 
 ## Next Steps (V1 completion)
-1. **Epoch scheduler** — Automated cron/timer for closeEpoch + advanceEpoch + startEpoch
-2. **End-to-end test on devnet** — Full flow: stake → auth → challenge → commit → reveal → score → fund → claim
+1. **End-to-end test on devnet** — Full flow: stake → auth → challenge → commit → reveal → score → fund → claim
 3. **Coordinator deployment** — Docker/hosting, production env config
 
 ## Conventions
