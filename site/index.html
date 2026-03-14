@@ -94,6 +94,8 @@ a:hover{text-decoration:underline}
 .epoch-phase.closed{background:rgba(136,136,144,0.1);color:var(--text-dim)}
 .epoch-timer{font-size:0.7rem;color:var(--text-muted);margin-top:0.3rem;font-variant-numeric:tabular-nums}
 .epoch-accuracy{font-size:0.6rem;color:var(--text-dim);margin-top:0.2rem}
+.epoch-hint{font-size:0.55rem;color:var(--text-dim);margin-top:0.4rem;opacity:0;transition:opacity 0.2s}
+.epoch-card:hover .epoch-hint{opacity:1}
 
 /* ── Epoch Detail Modal ────────────────────────────── */
 .modal-overlay{
@@ -481,6 +483,7 @@ function renderEpochStrip() {
       <div class="epoch-reward">${fmt(c.reward)} <span>$ENEL</span></div>
       <div class="epoch-phase ${c.isCurrent ? phaseClass(c.phase) : c.phase}">${c.isCurrent ? phaseDisplay(c.phase) : (c.funded ? 'CLAIMABLE' : 'CLOSED')}</div>
       ${c.accuracy !== null ? `<div class="epoch-accuracy">${(c.accuracy * 100).toFixed(0)}% accuracy</div>` : ''}
+      ${c.hasDetail ? '<div class="epoch-hint">click to expand</div>' : ''}
     </div>
   `).join('');
 }
