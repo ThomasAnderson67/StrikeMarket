@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import cors from "@fastify/cors";
 import { loadConfig } from "./config.js";
 import { SolanaService } from "./services/solana.js";
 import { PolymarketService } from "./services/polymarket.js";
@@ -53,6 +54,9 @@ async function main() {
     },
   });
 
+  // CORS for dashboard
+  await app.register(cors, { origin: true });
+
   // Health check
   app.get("/v1/health", async () => {
     try {
@@ -77,8 +81,77 @@ async function main() {
   // Initialize epoch scheduler
   const scheduler = new EpochScheduler(config, solana, epochManager);
 
-  // Expose scheduler status on health endpoint
+  // Expose scheduler status
   app.get("/v1/scheduler", async () => scheduler.getStatus());
+
+  // Dashboard stats endpoint
+  app.get("/v1/stats", async () => {
+    try {
+      const globalState = await solana.getGlobalState();
+      const currentEpoch = (globalState as any).currentEpoch.toNumber();
+      const epochState = await solana.getEpochState(currentEpoch);
+
+      // Vault balance (total staked + rewards)
+      const { PublicKey } = await import("@solana/web3.js");
+      const [vaultAddr] = PublicKey.findProgramAddressSync(
+        [Buffer.from("vault")],
+        config.programId
+      );
+      const vaultBalance = await solana.connection.getTokenAccountBalance(vaultAddr);
+
+      // Count active miners via getProgramAccounts on MinerState
+      // MinerState: 8 discriminator + 32 miner + 8 staked_amount + 1 tier + 8 unstake + 1 bump = 58
+      const minerAccounts = await solana.connection.getProgramAccounts(config.programId, {
+        filters: [{ dataSize: 58 }],
+      });
+
+      // Sum staked amounts and count active (tier > 0)
+      let totalStaked = BigInt(0);
+      let activeMiners = 0;
+      for (const { account } of minerAccounts) {
+        const data = account.data;
+        const stakedAmount = data.readBigUInt64LE(40); // offset: 8 disc + 32 miner
+        const tier = data[48]; // offset: 8 + 32 + 8
+        if (tier > 0) activeMiners++;
+        totalStaked += stakedAmount;
+      }
+
+      // Sum total mined (claimed across all epochs)
+      let totalMined = BigInt(0);
+      for (let e = 1; e < currentEpoch; e++) {
+        try {
+          const es = await solana.getEpochState(e);
+          totalMined += BigInt((es as any).totalClaimed.toNumber());
+        } catch {
+          // Epoch state may not exist
+        }
+      }
+
+      const schedulerStatus = scheduler.getStatus();
+
+      return {
+        currentEpoch,
+        phase: schedulerStatus.phase,
+        activeMiners,
+        totalMiners: minerAccounts.length,
+        totalStaked: totalStaked.toString(),
+        totalStakedFormatted: Number(totalStaked / BigInt(10 ** 6)),
+        totalMined: totalMined.toString(),
+        totalMinedFormatted: Number(totalMined / BigInt(10 ** 6)),
+        vaultBalance: vaultBalance.value.amount,
+        vaultBalanceFormatted: Number(vaultBalance.value.uiAmount),
+        epochRewardAmount: config.epochRewardAmount.toString(),
+        epochRewardFormatted: Number(config.epochRewardAmount / BigInt(10 ** 6)),
+        marketCount: (epochState as any).marketCount,
+        totalCredits: (epochState as any).totalCredits.toNumber(),
+        funded: (epochState as any).funded,
+        epochStart: (epochState as any).epochStart.toNumber(),
+        nextTransition: schedulerStatus.nextTransition,
+      };
+    } catch (err) {
+      return { error: "Failed to fetch stats", detail: String(err) };
+    }
+  });
 
   // Start server
   await app.listen({ port: config.port, host: config.host });
