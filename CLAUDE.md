@@ -176,10 +176,10 @@ src/
 - **Miner skill file:** COMPLETE — `enelbot-skill.md`
 - **Polymarket service:** COMPLETE — Gamma/CLOB API, 16 tests passing
 - **Epoch scheduler:** COMPLETE — Auto lifecycle, 15 tests passing
+- **E2E devnet test:** COMPLETE — Full lifecycle verified (init→stake→commit→reveal→score→fund→claim→close)
 
 ## Next Steps (V1 completion)
-1. **End-to-end test on devnet** — Full flow: stake → auth → challenge → commit → reveal → score → fund → claim
-3. **Coordinator deployment** — Docker/hosting, production env config
+1. **Coordinator deployment** — Docker/hosting, production env config
 
 ## Conventions
 - TypeScript strict in coordinator
