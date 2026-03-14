@@ -1,6 +1,7 @@
 import { EpochManager } from "./epoch.js";
 import { SolanaService } from "./solana.js";
 import { Config } from "../config.js";
+import { sendAlert } from "./alerts.js";
 
 // ── Epoch Scheduler ──────────────────────────────────────────────────
 //
@@ -214,6 +215,10 @@ export class EpochScheduler {
       console.log(`[scheduler] Now in epoch ${this.epochId}, phase: ${this.phase}`);
     } catch (err) {
       console.error(`[scheduler] Scoring/advance failed: ${err}`);
+      await sendAlert(
+        `Epoch ${this.epochId} scoring/advance failed`,
+        String(err),
+      );
       // Will retry on next tick
     } finally {
       this.scoring = false;

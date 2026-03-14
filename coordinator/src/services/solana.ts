@@ -72,6 +72,66 @@ export class SolanaService {
     }
   }
 
+  // ── Stats aggregation ─────────────────────────────────────────
+
+  /** Get vault token balance */
+  async getVaultBalance(): Promise<{ amount: string; uiAmount: number | null }> {
+    const [vaultAddr] = pda.findVault(this.config.programId);
+    const balance = await this.connection.getTokenAccountBalance(vaultAddr);
+    return { amount: balance.value.amount, uiAmount: balance.value.uiAmount };
+  }
+
+  /**
+   * Aggregate miner stats from on-chain MinerState accounts.
+   *
+   * MinerState layout (after 8-byte Anchor discriminator):
+   *   miner:              32 bytes  (offset 8)
+   *   staked_amount:       8 bytes  (offset 40)
+   *   tier:                1 byte   (offset 48)
+   *   unstake_requested_at: 8 bytes (offset 49)
+   *   bump:                1 byte   (offset 57)
+   *   Total:              58 bytes
+   */
+  static readonly MINER_STATE_SIZE = 58;
+  static readonly MINER_STAKED_OFFSET = 40; // 8 disc + 32 miner
+  static readonly MINER_TIER_OFFSET = 48;   // 8 disc + 32 miner + 8 staked
+
+  async getMinerStats(): Promise<{
+    activeMiners: number;
+    totalMiners: number;
+    totalStaked: bigint;
+  }> {
+    const accounts = await this.connection.getProgramAccounts(this.config.programId, {
+      filters: [{ dataSize: SolanaService.MINER_STATE_SIZE }],
+    });
+
+    let totalStaked = BigInt(0);
+    let activeMiners = 0;
+    for (const { account } of accounts) {
+      const data = account.data;
+      const stakedAmount = data.readBigUInt64LE(SolanaService.MINER_STAKED_OFFSET);
+      const tier = data[SolanaService.MINER_TIER_OFFSET];
+      if (tier > 0) activeMiners++;
+      totalStaked += stakedAmount;
+    }
+
+    return { activeMiners, totalMiners: accounts.length, totalStaked };
+  }
+
+  /** Sum totalClaimed across all past epochs */
+  async getTotalMined(currentEpoch: number): Promise<bigint> {
+    let totalMined = BigInt(0);
+    for (let e = 1; e < currentEpoch; e++) {
+      try {
+        const es = await this.getEpochState(e);
+        totalMined += BigInt((es as any).totalClaimed.toNumber());
+      } catch {
+        // Epoch state may not exist
+      }
+    }
+    return totalMined;
+  }
+
   // ── TX builders for miner-signed instructions ──────────────────
   // These return serialized unsigned transactions for the miner to sign.
 

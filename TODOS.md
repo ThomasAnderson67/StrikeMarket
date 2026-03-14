@@ -3,12 +3,12 @@
 ## Deferred Work
 
 ### 1. Decentralized Scoring (V2)
-**What:** Replace coordinator-admin scoring with on-chain Drift CPI — program reads BET outcomes directly and computes credits without coordinator involvement.
+**What:** Replace coordinator-admin scoring with on-chain Polymarket oracle CPI — program reads market outcomes directly and computes credits without coordinator involvement.
 **Why:** V1 coordinator is a trusted scoring authority, which conflicts with the lightpaper's trustlessness promise. Decentralizing scoring removes the single point of trust for the most critical operation (reward distribution).
 **Pros:** Fully trustless scoring, no admin key risk for credits, stronger narrative alignment.
-**Cons:** Drift CPI integration is complex (account structure, cross-program invocation), increases program size, ties program to Drift's specific on-chain layout.
+**Cons:** Polymarket oracle CPI integration is complex (account structure, cross-program invocation), increases program size, ties program to Polymarket's specific on-chain layout.
 **Context:** V1 uses coordinator-authorized scoring with on-chain guards (hash must match commit, credits <= market count). The trust boundary is documented in the architecture review. Decentralization is the natural V2 step.
-**Depends on:** V1 launch, stable Drift BET account structure, understanding of Drift CPI patterns.
+**Depends on:** V1 launch, stable Polymarket account structure, understanding of Polymarket oracle CPI patterns.
 
 ### 2. Multi-sig Admin
 **What:** Replace single coordinator admin key with a Squads multi-sig for `fund_epoch()` and `score_miner()` calls.
@@ -34,6 +34,6 @@
 **Implementation:** Store used nonces in a Set/DB with TTL matching token expiry. Check on `/v1/auth/verify` before issuing token.
 
 ### 5. Zero-Market Epoch Handling
-**What:** Handle edge case where zero eligible Drift BET markets exist at epoch start.
-**Why:** Drift could have downtime or all markets could be illiquid. Without handling, coordinator returns empty challenge set and miners get confused.
+**What:** Handle edge case where zero eligible Polymarket markets exist at epoch start.
+**Why:** Polymarket could have downtime or all markets could be illiquid. Without handling, coordinator returns empty challenge set and miners get confused.
 **Implementation:** If zero eligible markets at epoch start, coordinator skips the epoch (auto-advance) and returns a clear status message to miners via `/v1/challenge`.

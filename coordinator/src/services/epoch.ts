@@ -3,6 +3,7 @@ import { SolanaService } from "./solana.js";
 import { PolymarketService, ChallengeMarket, MarketOutcome } from "./polymarket.js";
 import { MinerPrediction, MinerScore, scoreAllMiners } from "./scoring.js";
 import { Config, calculateTier } from "../config.js";
+import { sendAlert } from "./alerts.js";
 
 // ── Epoch lifecycle manager ────────────────────────────────────────────
 //
@@ -29,6 +30,7 @@ async function withRetry<T>(
     } catch (err) {
       if (attempt === MAX_RETRIES) {
         console.error(`[epoch] ${label} failed after ${MAX_RETRIES + 1} attempts: ${err}`);
+        await sendAlert(`${label} failed after ${MAX_RETRIES + 1} attempts`, String(err));
         throw err;
       }
       const delay = RETRY_DELAYS_MS[attempt] || 10000;
