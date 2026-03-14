@@ -85,6 +85,23 @@ async function main() {
   registerEpochRoutes(app, solana);
   registerClaimRoutes(app, authService, solana);
 
+  // Epoch detail endpoints (for landing page)
+  app.get("/v1/epochs", async () => {
+    return epochManager.getEpochList();
+  });
+
+  app.get<{ Params: { id: string } }>("/v1/epoch/:id/details", async (request, reply) => {
+    const epochId = Number(request.params.id);
+    if (isNaN(epochId)) {
+      return reply.status(400).send({ error: "Invalid epoch ID" });
+    }
+    const detail = epochManager.getEpochDetail(epochId);
+    if (!detail) {
+      return reply.status(404).send({ error: "Epoch detail not found" });
+    }
+    return detail;
+  });
+
   // Initialize epoch scheduler
   const scheduler = new EpochScheduler(config, solana, epochManager);
 

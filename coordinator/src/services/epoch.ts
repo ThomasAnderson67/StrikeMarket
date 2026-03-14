@@ -5,6 +5,28 @@ import { MinerPrediction, MinerScore, scoreAllMiners } from "./scoring.js";
 import { Config, calculateTier } from "../config.js";
 import { sendAlert } from "./alerts.js";
 
+// ── Epoch detail store (in-memory, for landing page API) ──────────────
+
+export interface EpochMarketDetail {
+  marketId: string;        // hex
+  sourceMarketId: string;  // Polymarket conditionId
+  question: string;
+  outcome: boolean | null; // true=YES, false=NO, null=voided
+}
+
+export interface EpochDetail {
+  epochId: number;
+  markets: EpochMarketDetail[];
+  topMiners: Array<{ miner: string; credits: number }>;
+  totalPredictions: number;
+  correctPredictions: number;
+  accuracy: number;        // 0-1
+  totalCredits: number;
+  funded: boolean;
+  rewardAmount: string;
+  scoredAt: number;        // unix timestamp
+}
+
 // ── Epoch lifecycle manager ────────────────────────────────────────────
 //
 // Epoch timeline:
@@ -52,6 +74,9 @@ export class EpochManager {
   /** Resolved outcomes (cached after reveal window) */
   private outcomes: MarketOutcome[] = [];
 
+  /** Epoch detail store for landing page API */
+  private epochStore = new Map<number, EpochDetail>();
+
   constructor(config: Config, solana: SolanaService, polymarket: PolymarketService) {
     this.config = config;
     this.solana = solana;
@@ -64,6 +89,14 @@ export class EpochManager {
 
   getOutcomes(): MarketOutcome[] {
     return this.outcomes;
+  }
+
+  getEpochDetail(epochId: number): EpochDetail | undefined {
+    return this.epochStore.get(epochId);
+  }
+
+  getEpochList(): EpochDetail[] {
+    return Array.from(this.epochStore.values()).sort((a, b) => b.epochId - a.epochId);
   }
 
   /**
@@ -134,6 +167,38 @@ export class EpochManager {
       () => this.solana.fundEpoch(epochId, this.config.epochRewardAmount),
     );
     console.log(`[epoch] Funded epoch ${epochId} (tx: ${fundTxSig})`);
+
+    // 6. Save epoch details to store for landing page API
+    const totalPredictions = predictions.length;
+    const correctPredictions = scores.reduce((sum, s) => sum + s.correctCount, 0);
+
+    const marketDetails: EpochMarketDetail[] = this.challengeMarkets.map((cm) => {
+      const outcome = this.outcomes.find((o) => o.sourceMarketId === cm.sourceMarketId);
+      return {
+        marketId: cm.marketId.toString("hex"),
+        sourceMarketId: cm.sourceMarketId,
+        question: cm.question,
+        outcome: outcome?.outcome ?? null,
+      };
+    });
+
+    const topMiners = scores
+      .sort((a, b) => b.credits - a.credits)
+      .slice(0, 10)
+      .map((s) => ({ miner: s.miner.toBase58(), credits: s.credits }));
+
+    this.epochStore.set(epochId, {
+      epochId,
+      markets: marketDetails,
+      topMiners,
+      totalPredictions,
+      correctPredictions,
+      accuracy: totalPredictions > 0 ? correctPredictions / totalPredictions : 0,
+      totalCredits: scores.reduce((sum, s) => sum + s.credits, 0),
+      funded: true,
+      rewardAmount: this.config.epochRewardAmount.toString(),
+      scoredAt: Math.floor(Date.now() / 1000),
+    });
 
     return { scores, fundTxSig };
   }
