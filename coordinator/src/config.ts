@@ -44,14 +44,14 @@ export function loadConfig(): Config {
   return {
     port: parseInt(process.env.PORT || "3000"),
     host: process.env.HOST || "0.0.0.0",
-    rpcUrl: process.env.SOLANA_RPC_URL || "http://localhost:8899",
+    rpcUrl: process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com",
     programId: new PublicKey(
       process.env.PROGRAM_ID || "2BewLeJcdz8cmdjo1WvhtNphFoc7wk9V6fXUk5vzb19Q"
     ),
-    enelMint: new PublicKey(process.env.ENEL_MINT || PublicKey.default.toBase58()),
+    enelMint: new PublicKey(process.env.ENEL_MINT || "DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk"),
     adminKeypair,
     adminTokenAccount: new PublicKey(
-      process.env.ADMIN_TOKEN_ACCOUNT || PublicKey.default.toBase58()
+      process.env.ADMIN_TOKEN_ACCOUNT || "CAuWzHjPSChSkyqw3KNK6h3oxPSYDPJJtDWC8yvVYWK6"
     ),
     jwtSecret: process.env.JWT_SECRET || "enelbot-dev-secret-change-in-production",
     jwtExpirySeconds: parseInt(process.env.JWT_EXPIRY_SECONDS || "3600"),

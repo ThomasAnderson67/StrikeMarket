@@ -161,19 +161,24 @@ src/
 | GET | `/v1/claim-calldata` | JWT | Unsigned claim TX(s) |
 | GET | `/v1/close-commitment-calldata` | JWT | Unsigned close TX |
 
+## Devnet Addresses
+- **Program:** `2BewLeJcdz8cmdjo1WvhtNphFoc7wk9V6fXUk5vzb19Q`
+- **$ENEL Mint:** `DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk` (6 decimals, 100B supply)
+- **Treasury ATA:** `CAuWzHjPSChSkyqw3KNK6h3oxPSYDPJJtDWC8yvVYWK6`
+- **Admin/Upgrade Authority:** `ErW4zHrCrcZp5yFW1k4xS5VhTpnezHSvmkJAf1SAqrzy`
+
 ## Build Status (as of 2026-03-14)
-- **Solana program:** COMPLETE — 11 instructions, 25 tests passing
-- **Coordinator server:** COMPLETE — 12 endpoints, 61 tests passing
+- **Solana program:** COMPLETE — 11 instructions, 25 tests, deployed to devnet
+- **$ENEL token:** COMPLETE — SPL mint on devnet, 100B minted
+- **Coordinator server:** COMPLETE — 12 endpoints, 70 tests passing
 - **Miner skill file:** COMPLETE — `enelbot-skill.md`
 - **Polymarket service:** COMPLETE — Gamma/CLOB API, 16 tests passing
 - **Epoch scheduler:** NOT BUILT — manual epoch lifecycle
 
 ## Next Steps (V1 completion)
-1. **Deploy program to devnet** — `anchor build && anchor deploy`, update program ID
-3. **Create $ENEL token** — SPL mint on devnet (mainnet via Pump.fun)
-4. **Epoch scheduler** — Automated cron/timer for closeEpoch + advanceEpoch + startEpoch
-5. **End-to-end test on devnet** — Full flow: stake → auth → challenge → commit → reveal → score → fund → claim
-6. **Coordinator deployment** — Docker/hosting, production env config
+1. **Epoch scheduler** — Automated cron/timer for closeEpoch + advanceEpoch + startEpoch
+2. **End-to-end test on devnet** — Full flow: stake → auth → challenge → commit → reveal → score → fund → claim
+3. **Coordinator deployment** — Docker/hosting, production env config
 
 ## Conventions
 - TypeScript strict in coordinator
