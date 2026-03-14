@@ -16,6 +16,29 @@ import { Config, calculateTier } from "../config.js";
 // Zero-market handling: if zero eligible Polymarket markets exist
 // at epoch start, auto-skip the epoch.
 
+const MAX_RETRIES = 3;
+const RETRY_DELAYS_MS = [2000, 5000, 10000];
+
+async function withRetry<T>(
+  label: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt === MAX_RETRIES) {
+        console.error(`[epoch] ${label} failed after ${MAX_RETRIES + 1} attempts: ${err}`);
+        throw err;
+      }
+      const delay = RETRY_DELAYS_MS[attempt] || 10000;
+      console.warn(`[epoch] ${label} attempt ${attempt + 1} failed, retrying in ${delay}ms: ${err}`);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw new Error("unreachable");
+}
+
 export class EpochManager {
   private solana: SolanaService;
   private polymarket: PolymarketService;
@@ -103,10 +126,10 @@ export class EpochManager {
       }
     }
 
-    // 5. Fund the epoch
-    const fundTxSig = await this.solana.fundEpoch(
-      epochId,
-      this.config.epochRewardAmount
+    // 5. Fund the epoch (with retry — protocol-critical)
+    const fundTxSig = await withRetry(
+      `fundEpoch(${epochId})`,
+      () => this.solana.fundEpoch(epochId, this.config.epochRewardAmount),
     );
     console.log(`[epoch] Funded epoch ${epochId} (tx: ${fundTxSig})`);
 
@@ -117,7 +140,10 @@ export class EpochManager {
    * Advance to the next epoch on-chain.
    */
   async advanceEpoch(marketCount: number): Promise<string> {
-    return this.solana.advanceEpoch(marketCount);
+    return withRetry(
+      `advanceEpoch(marketCount=${marketCount})`,
+      () => this.solana.advanceEpoch(marketCount),
+    );
   }
 
   /**

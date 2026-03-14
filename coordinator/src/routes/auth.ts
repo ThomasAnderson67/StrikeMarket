@@ -1,11 +1,15 @@
 import { FastifyInstance } from "fastify";
 import { AuthService, AuthError } from "../middleware/auth.js";
 
+const AUTH_RATE_LIMIT = {
+  config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
+};
+
 export function registerAuthRoutes(app: FastifyInstance, authService: AuthService) {
   // POST /v1/auth/nonce — Request a signing nonce
   app.post<{
     Body: { miner: string };
-  }>("/v1/auth/nonce", async (request, reply) => {
+  }>("/v1/auth/nonce", AUTH_RATE_LIMIT, async (request, reply) => {
     const { miner } = request.body || {};
     if (!miner) {
       return reply.status(400).send({ error: "Missing 'miner' field" });
@@ -22,7 +26,7 @@ export function registerAuthRoutes(app: FastifyInstance, authService: AuthServic
   // POST /v1/auth/verify — Verify signature and get JWT
   app.post<{
     Body: { miner: string; message: string; signature: string };
-  }>("/v1/auth/verify", async (request, reply) => {
+  }>("/v1/auth/verify", AUTH_RATE_LIMIT, async (request, reply) => {
     const { miner, message, signature } = request.body || {};
     if (!miner || !message || !signature) {
       return reply

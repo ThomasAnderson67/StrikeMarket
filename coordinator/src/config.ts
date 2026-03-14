@@ -20,6 +20,18 @@ export function tierMultiplier(tier: number): number {
   return 0;
 }
 
+const DEV_JWT_SECRET = "enelbot-dev-secret-change-in-production";
+
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret && process.env.NODE_ENV === "production") {
+    throw new Error("JWT_SECRET env var is required in production");
+  }
+  if (secret) return secret;
+  console.warn("[config] WARNING: Using default JWT secret. Set JWT_SECRET in production.");
+  return DEV_JWT_SECRET;
+}
+
 // ── Environment config ─────────────────────────────────────────────────
 
 export interface Config {
@@ -60,7 +72,7 @@ export function loadConfig(): Config {
     adminTokenAccount: new PublicKey(
       process.env.ADMIN_TOKEN_ACCOUNT || "CAuWzHjPSChSkyqw3KNK6h3oxPSYDPJJtDWC8yvVYWK6"
     ),
-    jwtSecret: process.env.JWT_SECRET || "enelbot-dev-secret-change-in-production",
+    jwtSecret: getJwtSecret(),
     jwtExpirySeconds: parseInt(process.env.JWT_EXPIRY_SECONDS || "3600"),
     epochRewardAmount: BigInt(process.env.EPOCH_REWARD_AMOUNT || "1000000000000"), // 1M ENEL default
   };

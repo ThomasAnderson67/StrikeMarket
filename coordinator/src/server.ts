@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import rateLimit from "@fastify/rate-limit";
 import { loadConfig } from "./config.js";
 import { SolanaService } from "./services/solana.js";
 import { PolymarketService } from "./services/polymarket.js";
@@ -57,6 +58,12 @@ async function main() {
   // CORS for dashboard
   await app.register(cors, { origin: true });
 
+  // Rate limiting (global default + stricter on auth)
+  await app.register(rateLimit, {
+    max: 100,
+    timeWindow: "1 minute",
+  });
+
   // Health check
   app.get("/v1/health", async () => {
     try {
@@ -84,8 +91,14 @@ async function main() {
   // Expose scheduler status
   app.get("/v1/scheduler", async () => scheduler.getStatus());
 
-  // Dashboard stats endpoint
+  // Dashboard stats endpoint (cached 60s to avoid RPC storms)
+  const STATS_CACHE_TTL_MS = 60_000;
+  let statsCache: { data: any; expiresAt: number } | null = null;
+
   app.get("/v1/stats", async () => {
+    if (statsCache && Date.now() < statsCache.expiresAt) {
+      return statsCache.data;
+    }
     try {
       const globalState = await solana.getGlobalState();
       const currentEpoch = (globalState as any).currentEpoch.toNumber();
@@ -129,7 +142,7 @@ async function main() {
 
       const schedulerStatus = scheduler.getStatus();
 
-      return {
+      const result = {
         currentEpoch,
         phase: schedulerStatus.phase,
         activeMiners,
@@ -148,6 +161,8 @@ async function main() {
         epochStart: (epochState as any).epochStart.toNumber(),
         nextTransition: schedulerStatus.nextTransition,
       };
+      statsCache = { data: result, expiresAt: Date.now() + STATS_CACHE_TTL_MS };
+      return result;
     } catch (err) {
       return { error: "Failed to fetch stats", detail: String(err) };
     }

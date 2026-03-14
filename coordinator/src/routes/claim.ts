@@ -22,9 +22,13 @@ export function registerClaimRoutes(
           .send({ error: "Missing 'epochs', 'miner', or 'minerTokenAccount'" });
       }
 
+      const MAX_CLAIM_EPOCHS = 20;
       const epochIds = epochs.split(",").map(Number);
       if (epochIds.some(isNaN)) {
         return reply.status(400).send({ error: "Invalid epoch format" });
+      }
+      if (epochIds.length > MAX_CLAIM_EPOCHS) {
+        return reply.status(400).send({ error: `Too many epochs (max ${MAX_CLAIM_EPOCHS})` });
       }
 
       try {
