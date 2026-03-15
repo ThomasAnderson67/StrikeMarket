@@ -478,12 +478,12 @@ function renderEpochStrip() {
   }
 
   strip.innerHTML = cards.map(c => `
-    <div class="epoch-card ${c.isCurrent ? 'current' : ''}" ${c.hasDetail ? `onclick="openEpochDetail(${c.epochId})"` : ''}>
+    <div class="epoch-card ${c.isCurrent ? 'current' : ''}" onclick="openEpochDetail(${c.epochId})">
       <div class="epoch-id">Epoch ${c.epochId}</div>
       <div class="epoch-reward">${fmt(c.reward)} <span>$ENEL</span></div>
       <div class="epoch-phase ${c.isCurrent ? phaseClass(c.phase) : c.phase}">${c.isCurrent ? phaseDisplay(c.phase) : (c.funded ? 'CLAIMABLE' : 'CLOSED')}</div>
       ${c.accuracy !== null ? `<div class="epoch-accuracy">${(c.accuracy * 100).toFixed(0)}% accuracy</div>` : ''}
-      ${c.hasDetail ? '<div class="epoch-hint">click to expand</div>' : ''}
+      <div class="epoch-hint">click to expand</div>
     </div>
   `).join('');
 }
@@ -505,8 +505,15 @@ async function openEpochDetail(epochId) {
     const detail = await res.json();
     renderModal(detail);
   } catch (e) {
-    document.getElementById('modalMarkets').innerHTML = '<div style="color:var(--text-dim);font-size:0.75rem;text-align:center;padding:1rem">No detail data available for this epoch</div>';
+    const isCurrent = statsData && epochId === statsData.currentEpoch;
+    const msg = isCurrent
+      ? 'Scoring in progress — details available after epoch closes.'
+      : 'No detail data available for this epoch.';
+    document.getElementById('modalMarkets').innerHTML = `<div style="color:var(--text-dim);font-size:0.75rem;text-align:center;padding:2rem">${msg}</div>`;
     document.getElementById('modalLeaderboard').innerHTML = '';
+    document.getElementById('modalAccuracy').textContent = '--';
+    document.getElementById('modalPredictions').textContent = '--';
+    document.getElementById('modalCredits').textContent = '--';
   }
 }
 
