@@ -719,105 +719,74 @@ function copyCmd(el, text) {
   setTimeout(() => { hint.textContent = 'click to copy'; hint.style.color = ''; }, 2000);
 }
 
-// ── Dither Canvas (optimized: ImageData buffer, 30fps, pause on hidden) ─────
+// ── Dither Canvas (original render + pause on hidden tab) ─────
 const canvas = document.getElementById('dither-canvas');
 const ctx = canvas.getContext('2d');
 let cw, ch, time = 0;
-let imgData, pixels;
 let animId = null;
-let lastFrame = 0;
-const TARGET_FPS = 30;
-const FRAME_MS = 1000 / TARGET_FPS;
-const GRID = 6;
 
-// Pre-compute noise table (avoid Math.random per pixel per frame)
-const NOISE_SIZE = 4096;
-const noise = new Float32Array(NOISE_SIZE);
-for (let i = 0; i < NOISE_SIZE; i++) noise[i] = (Math.random() - 0.5) * 0.1;
-let noiseIdx = 0;
+const bayerMatrix = [
+  [0, 8, 2, 10],
+  [12, 4, 14, 6],
+  [3, 11, 1, 9],
+  [15, 7, 13, 5]
+];
 
-// Flattened Bayer threshold lookup (avoid function call overhead)
-const bayer = new Float32Array(16);
-const bayerRaw = [0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
-for (let i = 0; i < 16; i++) bayer[i] = (bayerRaw[i] / 16) - 0.5;
-
-// Background color bytes
-const BG_R = 13, BG_G = 0, BG_B = 16;
+function getThreshold(x, y) {
+  return (bayerMatrix[y % 4][x % 4] / 16) - 0.5;
+}
 
 function resize() {
   cw = window.innerWidth;
   ch = window.innerHeight;
   canvas.width = cw;
   canvas.height = ch;
-  imgData = ctx.createImageData(cw, ch);
-  pixels = imgData.data;
 }
 window.addEventListener('resize', resize);
 resize();
 
-function draw(now) {
-  animId = requestAnimationFrame(draw);
+function draw() {
+  ctx.fillStyle = '#0d0010';
+  ctx.fillRect(0, 0, cw, ch);
 
-  // Throttle to ~30fps
-  if (now - lastFrame < FRAME_MS) return;
-  lastFrame = now;
-
-  const cols = Math.ceil(cw / GRID);
-  const rows = Math.ceil(ch / GRID);
+  const gridSize = 6;
+  const cols = Math.ceil(cw / gridSize);
+  const rows = Math.ceil(ch / gridSize);
   const waveCenterY = rows / 2;
   const waveAmplitude = rows / 4;
-  const freq = 0.05;
+  const frequency = 0.05;
 
-  // Fill entire buffer with background color
-  for (let i = 0, len = pixels.length; i < len; i += 4) {
-    pixels[i] = BG_R; pixels[i+1] = BG_G; pixels[i+2] = BG_B; pixels[i+3] = 255;
-  }
-
-  // Draw dither particles into ImageData buffer
-  for (let gy = 0; gy < rows; gy++) {
-    for (let gx = 0; gx < cols; gx++) {
-      const wave1 = Math.sin(gx * freq + time) * waveAmplitude;
-      const wave2 = Math.cos(gx * freq * 0.5 - time) * (waveAmplitude * 0.5);
-      const distFromWave = Math.abs(gy - (waveCenterY + wave1 + wave2));
-      let intensity = 1 - (distFromWave / 15);
-      if (intensity <= 0) continue; // Skip pixels far from wave (major speedup)
-
-      intensity += noise[noiseIdx++ & (NOISE_SIZE - 1)];
-      const threshold = bayer[((gy & 3) << 2) | (gx & 3)];
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const wave1 = Math.sin(x * frequency + time) * waveAmplitude;
+      const wave2 = Math.cos(x * frequency * 0.5 - time) * (waveAmplitude * 0.5);
+      const combinedWave = wave1 + wave2;
+      const distFromWave = Math.abs(y - (waveCenterY + combinedWave));
+      let intensity = Math.max(0, 1 - (distFromWave / 15));
+      intensity += (Math.random() - 0.5) * 0.1;
+      const threshold = getThreshold(x, y);
 
       if (intensity + threshold > 0.5) {
-        const br = Math.min(1, intensity * 1.2);
-        const r = (192 * br) | 0;
-        const g = (132 * br) | 0;
-        const b = (252 * br) | 0;
-
-        // Fill GRID x GRID-1 block in the pixel buffer
-        const px = gx * GRID;
-        const py = gy * GRID;
-        const endX = Math.min(px + GRID - 1, cw);
-        const endY = Math.min(py + GRID - 1, ch);
-
-        for (let y = py; y < endY; y++) {
-          let off = (y * cw + px) << 2;
-          for (let x = px; x < endX; x++) {
-            pixels[off] = r; pixels[off+1] = g; pixels[off+2] = b;
-            off += 4;
-          }
-        }
+        const brightness = Math.min(1, intensity * 1.2);
+        const r = Math.floor(192 * brightness);
+        const g = Math.floor(132 * brightness);
+        const b = Math.floor(252 * brightness);
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fillRect(x * gridSize, y * gridSize, gridSize - 1, gridSize - 1);
       }
     }
   }
 
-  ctx.putImageData(imgData, 0, 0);
   time += 0.02;
+  animId = requestAnimationFrame(draw);
 }
 
-// Pause animation when tab is hidden (zero CPU when not visible)
+// Pause when tab is hidden (zero CPU in background)
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     if (animId) { cancelAnimationFrame(animId); animId = null; }
   } else {
-    if (!animId) { lastFrame = 0; animId = requestAnimationFrame(draw); }
+    if (!animId) { animId = requestAnimationFrame(draw); }
   }
 });
 
