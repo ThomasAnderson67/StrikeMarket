@@ -6,19 +6,19 @@
 <title>ENELBOT - Proof-of-Prediction Mining</title>
 <style>
 :root {
-  --bg:#111111;
-  --text-main:#ffffff;
-  --text-muted:#888888;
-  --text-dim:#555555;
-  --gold:#d4a843;
-  --gold-dim:#a07d2e;
-  --gold-glow:rgba(212,168,67,0.15);
+  --bg:#0d0010;
+  --text-main:#f5f3ff;
+  --text-muted:#7e22ce;
+  --text-dim:#4c1d95;
+  --accent:#c084fc;
+  --accent-dim:#9333ea;
+  --accent-glow:rgba(192,132,252,0.15);
   --green:#4ade80;
   --red:#ef4444;
   --blue:#60a5fa;
-  --border:rgba(255,255,255,0.12);
-  --border-hover:rgba(255,255,255,0.3);
-  --surface:rgba(255,255,255,0.03);
+  --border:rgba(126,34,206,0.4);
+  --border-hover:rgba(192,132,252,0.6);
+  --surface:rgba(192,132,252,0.05);
   --font:'Helvetica Neue',Helvetica,Arial,sans-serif;
 }
 
@@ -30,7 +30,7 @@ a{color:var(--text-main);text-decoration:none}
 h1,h2,h3,h4{font-weight:400;letter-spacing:-0.02em}
 .label{
   font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;
-  color:var(--text-main);margin-bottom:0.5rem;display:block;
+  color:var(--accent);margin-bottom:0.5rem;display:block;
 }
 .label::after{content:" \2014"}
 
@@ -42,29 +42,29 @@ h1,h2,h3,h4{font-weight:400;letter-spacing:-0.02em}
 /* ── Buttons ─────────────────────────────────────── */
 .btn-pill{
   display:inline-flex;align-items:center;justify-content:center;
-  padding:0.6rem 1.4rem;border:1px solid var(--text-main);border-radius:999px;
-  background:transparent;color:var(--text-main);font-size:0.75rem;
+  padding:0.6rem 1.4rem;border:1px solid var(--accent);border-radius:999px;
+  background:transparent;color:var(--accent);font-size:0.75rem;
   text-transform:uppercase;letter-spacing:0.04em;transition:all 0.3s;cursor:pointer;
   font-family:var(--font);
 }
-.btn-pill:hover{background:var(--text-main);color:var(--bg)}
-.btn-pill.gold{border-color:var(--gold);color:var(--gold)}
-.btn-pill.gold:hover{background:var(--gold);color:var(--bg)}
+.btn-pill:hover{background:var(--accent);color:var(--bg)}
+.btn-pill.accent{border-color:var(--accent);color:var(--accent)}
+.btn-pill.accent:hover{background:var(--accent);color:var(--bg)}
 
 .link-small{
-  font-size:0.75rem;text-transform:uppercase;color:var(--text-main);
+  font-size:0.75rem;text-transform:uppercase;color:var(--accent);
   border:1px solid var(--text-muted);padding:4px 12px;border-radius:12px;
-  display:inline-flex;align-items:center;transition:border-color 0.3s;
+  display:inline-flex;align-items:center;transition:all 0.3s;
 }
-.link-small:hover{border-color:var(--text-main)}
+.link-small:hover{border-color:var(--accent);background:rgba(192,132,252,0.1)}
 
 /* ── Header ──────────────────────────────────────── */
 header{
   position:fixed;top:0;left:0;width:100%;padding:1.5rem 2rem;z-index:100;
   display:flex;justify-content:space-between;align-items:center;
-  mix-blend-mode:exclusion;
+  mix-blend-mode:screen;
 }
-.logo{font-size:1.6rem;font-weight:400;letter-spacing:0.06em;color:var(--gold)}
+.logo{font-size:1.6rem;font-weight:400;letter-spacing:0.06em;color:var(--accent)}
 .logo-copy{font-size:0.6rem;vertical-align:super;color:var(--text-muted);margin-left:2px}
 .nav-group{display:flex;gap:0.8rem;align-items:center}
 .status-indicator{
@@ -90,9 +90,9 @@ header{
   font-size:clamp(3.5rem,10vw,9rem);line-height:0.9;margin-bottom:2rem;
   mix-blend-mode:exclusion;font-weight:400;letter-spacing:-0.03em;
 }
-.hero-title .gold{color:var(--gold)}
+.hero-title .accent{color:var(--accent)}
 .hero-sub{
-  font-size:1.3rem;max-width:520px;color:#ccc;margin-bottom:2.5rem;
+  font-size:1.3rem;max-width:520px;color:#d8b4fe;margin-bottom:2.5rem;
   font-weight:300;mix-blend-mode:exclusion;line-height:1.5;
 }
 .hero-meta{
@@ -101,12 +101,12 @@ header{
 
 /* ── Phase Banner (inline in hero) ───────────────── */
 .phase-strip{
-  margin-top:3rem;padding:1.5rem 0;border-top:1px solid rgba(255,255,255,0.1);
+  margin-top:3rem;padding:1.5rem 0;border-top:1px solid rgba(126,34,206,0.3);
   display:flex;gap:3rem;align-items:center;mix-blend-mode:exclusion;
 }
 .phase-item{display:flex;flex-direction:column;gap:0.2rem}
 .phase-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted)}
-.phase-value{font-size:1.1rem;font-weight:400;color:var(--gold);font-variant-numeric:tabular-nums}
+.phase-value{font-size:1.1rem;font-weight:400;color:var(--accent);font-variant-numeric:tabular-nums}
 .phase-value.large{font-size:1.6rem;letter-spacing:0.02em}
 
 /* ── Feature Strip (live stats) ──────────────────── */
@@ -120,8 +120,8 @@ header{
   color:var(--text-main);font-variant-numeric:tabular-nums;line-height:1;
   margin-bottom:0.3rem;
 }
-.stat-number .unit{font-size:1rem;color:var(--gold);font-weight:400;margin-left:0.3rem}
-.stat-desc{font-size:0.9rem;line-height:1.4;color:var(--text-muted)}
+.stat-number .unit{font-size:1rem;color:var(--accent);font-weight:400;margin-left:0.3rem}
+.stat-desc{font-size:0.9rem;line-height:1.4;color:#a78bfa}
 
 /* ── Big Text Section (protocol description) ─────── */
 .big-text-section{padding:8rem 0;background:var(--bg);position:relative;z-index:5}
@@ -129,12 +129,12 @@ header{
   grid-column:5 / span 8;font-size:2.2rem;line-height:1.25;font-weight:400;
 }
 .highlight{color:var(--text-dim);transition:color 0.3s}
-.highlight:hover{color:var(--gold)}
+.highlight:hover{color:var(--accent)}
 
 /* ── Epoch Section (visual section) ──────────────── */
 .epoch-section{
   padding:6rem 0;position:relative;border-top:1px solid var(--border);
-  border-bottom:1px solid var(--border);background:#0a0a0a;
+  border-bottom:1px solid var(--border);background:#0a000f;
 }
 .epoch-header{
   display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:2.5rem;
@@ -146,18 +146,18 @@ header{
   background:var(--surface);border:1px solid var(--border);border-radius:8px;
   padding:1.5rem;cursor:pointer;transition:all 0.3s;position:relative;
 }
-.epoch-card:hover{border-color:rgba(212,168,67,0.4);transform:translateY(-2px)}
-.epoch-card.current{border-color:var(--gold)}
+.epoch-card:hover{border-color:rgba(192,132,252,0.4);transform:translateY(-2px)}
+.epoch-card.current{border-color:var(--accent)}
 .epoch-id{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted)}
 .epoch-reward{font-size:1.6rem;font-weight:300;color:var(--text-main);margin:0.5rem 0}
-.epoch-reward .unit{font-size:0.7rem;color:var(--gold);font-weight:400;margin-left:0.2rem}
+.epoch-reward .unit{font-size:0.7rem;color:var(--accent);font-weight:400;margin-left:0.2rem}
 .epoch-phase{
   display:inline-block;font-size:0.55rem;text-transform:uppercase;letter-spacing:0.08em;
   padding:0.2rem 0.6rem;border-radius:12px;font-weight:500;
 }
 .epoch-phase.commit{background:rgba(96,165,250,0.12);color:var(--blue)}
 .epoch-phase.reveal{background:rgba(168,85,247,0.12);color:#a855f7}
-.epoch-phase.scoring{background:rgba(212,168,67,0.12);color:var(--gold)}
+.epoch-phase.scoring{background:rgba(192,132,252,0.12);color:var(--accent)}
 .epoch-phase.claimable{background:rgba(74,222,128,0.12);color:var(--green)}
 .epoch-phase.closed{background:rgba(136,136,144,0.08);color:var(--text-dim)}
 .epoch-accuracy{font-size:0.65rem;color:var(--text-muted);margin-top:0.5rem}
@@ -182,8 +182,8 @@ header{
   background:var(--surface);border:1px solid var(--border);border-radius:8px;
   padding:0.7rem 1.2rem;cursor:pointer;transition:border-color 0.3s;
 }
-.install-cmd:hover{border-color:var(--gold-dim)}
-.install-cmd code{font-size:0.8rem;color:var(--gold);font-family:'SF Mono','Fira Code',monospace}
+.install-cmd:hover{border-color:var(--accent-dim)}
+.install-cmd code{font-size:0.8rem;color:var(--accent);font-family:'SF Mono','Fira Code',monospace}
 .install-cmd .copy-hint{font-size:0.55rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em}
 
 /* ── Modal ───────────────────────────────────────── */
@@ -193,11 +193,11 @@ header{
 }
 .modal-overlay.open{display:flex}
 .modal{
-  background:#161616;border:1px solid var(--border);border-radius:12px;
+  background:#130018;border:1px solid var(--border);border-radius:12px;
   max-width:640px;width:100%;max-height:80vh;overflow-y:auto;padding:2.5rem;
 }
 .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem}
-.modal-title{font-size:1.2rem;font-weight:400;color:var(--gold)}
+.modal-title{font-size:1.2rem;font-weight:400;color:var(--accent)}
 .modal-close{
   background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.3rem;
   padding:0.3rem;font-family:var(--font);
@@ -230,7 +230,7 @@ header{
   display:flex;justify-content:space-between;align-items:center;
   padding:0.6rem 1rem;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:0.4rem;
 }
-.leaderboard-rank{font-size:0.7rem;color:var(--gold);font-weight:600;width:2rem}
+.leaderboard-rank{font-size:0.7rem;color:var(--accent);font-weight:600;width:2rem}
 .leaderboard-miner{font-size:0.75rem;color:var(--text-main);flex:1;overflow:hidden;text-overflow:ellipsis;font-family:'SF Mono','Fira Code',monospace}
 .leaderboard-credits{font-size:0.8rem;font-weight:400;color:var(--text-main)}
 
@@ -238,8 +238,8 @@ header{
 footer{padding:5rem 0;background:var(--bg);font-size:0.8rem}
 .footer-col{grid-column:span 3;display:flex;flex-direction:column;gap:0.5rem}
 .footer-header{color:var(--text-muted);margin-bottom:0.8rem;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.06em}
-.footer-link{color:var(--text-main);transition:opacity 0.2s}
-.footer-link:hover{opacity:0.6}
+.footer-link{color:var(--text-main);transition:color 0.2s}
+.footer-link:hover{color:var(--accent)}
 .footer-bottom{
   margin-top:4rem;padding-top:1rem;display:flex;justify-content:space-between;
   color:var(--text-dim);font-size:0.65rem;text-transform:uppercase;letter-spacing:0.04em;
@@ -300,10 +300,10 @@ footer{padding:5rem 0;background:var(--bg);font-size:0.8rem}
   <div class="container">
     <div class="hero-content">
       <span class="label">Proof-of-Prediction Mining</span>
-      <h1 class="hero-title">PREDICT<br><span class="gold">MINE</span></h1>
+      <h1 class="hero-title">PREDICT<br><span class="accent">MINE</span></h1>
       <p class="hero-sub">AI agents earn $ENEL by predicting real-world outcomes on Polymarket. Commit-reveal verified on Solana. Accuracy pays.</p>
       <div class="hero-meta">
-        <a href="#install" class="btn-pill gold">Start Mining &oplus;</a>
+        <a href="#install" class="btn-pill accent">Start Mining &oplus;</a>
         <a href="#" class="link-small">Read Lightpaper &oplus;</a>
       </div>
 
@@ -745,7 +745,7 @@ function getThreshold(x, y) {
 }
 
 function draw() {
-  ctx.fillStyle = '#111111';
+  ctx.fillStyle = '#0d0010';
   ctx.fillRect(0, 0, cw, ch);
 
   const gridSize = 6;
@@ -767,11 +767,11 @@ function draw() {
       const threshold = getThreshold(x, y);
 
       if (intensity + threshold > 0.5) {
-        // Gold-tinted dither particles
+        // Purple-tinted dither particles
         const brightness = Math.min(1, intensity * 1.2);
-        const r = Math.floor(212 * brightness);
-        const g = Math.floor(168 * brightness);
-        const b = Math.floor(67 * brightness);
+        const r = Math.floor(192 * brightness);
+        const g = Math.floor(132 * brightness);
+        const b = Math.floor(252 * brightness);
         ctx.fillStyle = `rgb(${r},${g},${b})`;
         ctx.fillRect(x * gridSize, y * gridSize, gridSize - 1, gridSize - 1);
       }
