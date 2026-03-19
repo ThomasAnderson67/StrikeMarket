@@ -50,7 +50,7 @@ export class AuthService {
    */
   generateNonce(minerPubkey: string): { message: string; nonce: string } {
     const nonce = randomBytes(32).toString("hex");
-    const message = `ENELBOT auth nonce: ${nonce}\nMiner: ${minerPubkey}\nTimestamp: ${Date.now()}`;
+    const message = `Strike auth nonce: ${nonce}\nMiner: ${minerPubkey}\nTimestamp: ${Date.now()}`;
 
     this.pendingNonces.set(nonce, {
       miner: minerPubkey,
@@ -72,7 +72,7 @@ export class AuthService {
     signature: string
   ): Promise<{ token: string; expiresAt: number }> {
     // Extract nonce from message
-    const nonceMatch = message.match(/ENELBOT auth nonce: ([a-f0-9]+)/);
+    const nonceMatch = message.match(/Strike auth nonce: ([a-f0-9]+)/);
     if (!nonceMatch) {
       throw new AuthError(401, "Invalid message format");
     }

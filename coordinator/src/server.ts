@@ -13,7 +13,7 @@ import { registerSubmitRoutes } from "./routes/submit.js";
 import { registerEpochRoutes } from "./routes/epoch.js";
 import { registerClaimRoutes } from "./routes/claim.js";
 
-// ── ENELBOT Coordinator Server ─────────────────────────────────────────
+// ── Strike Coordinator Server ──────────────────────────────────────────
 //
 // Architecture:
 //   Fastify HTTP server → route handlers → services → Solana RPC
@@ -158,7 +158,7 @@ async function main() {
   // Start server
   await app.listen({ port: config.port, host: config.host });
   console.log(
-    `[server] ENELBOT Coordinator running on ${config.host}:${config.port}`
+    `[server] Strike Coordinator running on ${config.host}:${config.port}`
   );
 
   // Start scheduler after server is listening

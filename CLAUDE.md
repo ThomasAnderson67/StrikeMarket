@@ -1,13 +1,13 @@
-# ENELBOT
+# Strike
 
 ## What
-Proof-of-prediction mining protocol on Solana. AI agents earn $ENEL by predicting outcomes on prediction markets. Commit-reveal scheme verified on-chain, epoch-based rewards distributed proportionally by accuracy × tier.
+Proof-of-prediction mining protocol on Solana. AI agents earn $STRK by predicting outcomes on prediction markets. Commit-reveal scheme verified on-chain, epoch-based rewards distributed proportionally by accuracy × tier.
 
 ## Stack
 - **Program:** Anchor (Rust), Solana, 11 instructions, 25 tests passing
 - **Coordinator:** TypeScript, Fastify, 12 API endpoints, 61 tests passing
 - **Prediction Markets:** Polymarket REST API (off-chain reads, no on-chain CPI)
-- **Token:** $ENEL, SPL token, 6 decimals, 100B fixed supply, Pump.fun launch
+- **Token:** $STRK, SPL token, 6 decimals, 100B fixed supply, Pump.fun launch
 - **Reference:** shadowvaults has existing Polymarket CLOB integration (see `references/shadowvaults/`)
 
 ## Commands
@@ -48,12 +48,12 @@ GET /claim-calldata      ──►  unsigned TX    ──►  claim_rewards
 ### Tier System (stake-gated mining)
 | Tier | Minimum Stake | Credits/Correct | Multiplier |
 |------|---------------|-----------------|------------|
-| 0 | < 1M $ENEL | Cannot mine | 0x |
-| 1 | 1,000,000 $ENEL | 1 credit | 1x |
-| 2 | 10,000,000 $ENEL | 2 credits | 2x |
-| 3 | 100,000,000 $ENEL | 3 credits | 3x |
+| 0 | < 1M $STRK | Cannot mine | 0x |
+| 1 | 1,000,000 $STRK | 1 credit | 1x |
+| 2 | 10,000,000 $STRK | 2 credits | 2x |
+| 3 | 100,000,000 $STRK | 3 credits | 3x |
 
-Token has 6 decimals. Base units: 1M ENEL = `1_000_000_000_000`.
+Token has 6 decimals. Base units: 1M STRK = `1_000_000_000_000`.
 
 ### Epoch Timing
 ```
@@ -82,13 +82,13 @@ Epoch funding: treasury wallet via `fund_epoch` admin instruction.
 - Drift BET exists but markets are sparse and implemented as special `PerpMarketAccount` types
 - Polymarket has deeper liquidity, more markets, and a well-documented REST API
 - shadowvaults project has existing Polymarket CLOB integration as reference
-- Markets read off-chain via REST — no on-chain CPI needed
+- Markets read off-chain via REST -- no on-chain CPI needed
 - Coordinator curates markets at epoch boundary, resolves outcomes after reveal window
 
 ### Trust Model
 - Coordinator-authorized scoring with on-chain guards
 - Admin signs `score_miner` and `fund_epoch` TXs
-- On-chain guards: hash must match commit, credits ≤ market count
+- On-chain guards: hash must match commit, credits <= market count
 - V2 TODO: decentralized scoring, multi-sig admin
 
 ### PDA Rent
@@ -101,8 +101,8 @@ Epoch funding: treasury wallet via `fund_epoch` admin instruction.
 | Instruction | Signer | Purpose |
 |-------------|--------|---------|
 | `initialize` | admin | Create GlobalState, vault, first EpochState |
-| `stake` | miner | Lock $ENEL, assign tier |
-| `unstake` | miner | Start 24h cooldown, tier → 0 |
+| `stake` | miner | Lock $STRK, assign tier |
+| `unstake` | miner | Start 24h cooldown, tier -> 0 |
 | `withdraw` | miner | After cooldown, return tokens |
 | `commit_prediction` | miner | Store SHA256 hash on-chain |
 | `reveal_prediction` | miner | Verify hash, record prediction |
@@ -140,7 +140,7 @@ src/
 └── services/
     ├── solana.ts           # TX builders + state readers
     ├── polymarket.ts       # Polymarket Gamma/CLOB API (scan + resolve)
-    ├── scoring.ts          # credits = correct × tier_multiplier
+    ├── scoring.ts          # credits = correct x tier_multiplier
     ├── epoch.ts            # Epoch lifecycle (start, close, advance)
     └── scheduler.ts        # Automated epoch state machine (poll-based)
 ```
@@ -165,19 +165,20 @@ src/
 
 ## Devnet Addresses
 - **Program:** `2BewLeJcdz8cmdjo1WvhtNphFoc7wk9V6fXUk5vzb19Q`
-- **$ENEL Mint:** `DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk` (6 decimals, 100B supply)
+- **$STRK Mint:** `DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk` (6 decimals, 100B supply)
 - **Treasury ATA:** `CAuWzHjPSChSkyqw3KNK6h3oxPSYDPJJtDWC8yvVYWK6`
 - **Admin/Upgrade Authority:** `ErW4zHrCrcZp5yFW1k4xS5VhTpnezHSvmkJAf1SAqrzy`
 
-## Build Status (as of 2026-03-14)
-- **Solana program:** COMPLETE — 11 instructions, 25 tests, deployed to devnet
-- **$ENEL token:** COMPLETE — SPL mint on devnet, 100B minted
-- **Coordinator server:** COMPLETE — 13 endpoints, 85 tests passing
-- **Miner skill file:** COMPLETE — `enelbot-skill.md`
-- **Polymarket service:** COMPLETE — Gamma/CLOB API, 16 tests passing
-- **Epoch scheduler:** COMPLETE — Auto lifecycle, 15 tests passing
-- **E2E devnet test:** COMPLETE — Full lifecycle verified (init→stake→commit→reveal→score→fund→claim→close)
-- **Coordinator deployment:** COMPLETE — Dockerfile + Railway config
+## Build Status (as of 2026-03-19)
+- **Solana program:** COMPLETE -- 11 instructions, 25 tests, deployed to devnet
+- **$STRK token:** COMPLETE -- SPL mint on devnet, 100B minted
+- **Coordinator server:** COMPLETE -- 13 endpoints, 85 tests passing
+- **Miner skill file:** COMPLETE -- `enelbot-skill.md`
+- **Polymarket service:** COMPLETE -- Gamma/CLOB API, 16 tests passing
+- **Epoch scheduler:** COMPLETE -- Auto lifecycle, 15 tests passing
+- **E2E devnet test:** COMPLETE -- Full lifecycle verified (init->stake->commit->reveal->score->fund->claim->close)
+- **Coordinator deployment:** COMPLETE -- Dockerfile + Railway config
+- **Landing page:** COMPLETE -- strikemarket.io (Vercel)
 
 ## Deployment (Railway)
 
@@ -186,7 +187,7 @@ src/
 cd coordinator && npm run build
 
 # Docker
-docker build -t enelbot-coordinator coordinator/
+docker build -t strike-coordinator coordinator/
 ```
 
 ### Required env vars on Railway
@@ -196,9 +197,9 @@ docker build -t enelbot-coordinator coordinator/
 | `SOLANA_RPC_URL` | Solana RPC (default: `https://api.devnet.solana.com`) |
 | `JWT_SECRET` | Random secret for JWT signing (**must change from default**) |
 | `PROGRAM_ID` | Program ID (default: `2BewLeJcdz8cmdjo1WvhtNphFoc7wk9V6fXUk5vzb19Q`) |
-| `ENEL_MINT` | Token mint (default: `DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk`) |
+| `STRK_MINT` | Token mint (default: `DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk`). Also accepts `ENEL_MINT` for backward compat. |
 | `ADMIN_TOKEN_ACCOUNT` | Admin ATA (default: `CAuWzHjPSChSkyqw3KNK6h3oxPSYDPJJtDWC8yvVYWK6`) |
-| `EPOCH_REWARD_AMOUNT` | Reward per epoch in base units (default: `1000000000000` = 1M $ENEL) |
+| `EPOCH_REWARD_AMOUNT` | Reward per epoch in base units (default: `1000000000000` = 1M $STRK) |
 | `PORT` | Server port (default: `3000`, Railway sets this automatically) |
 
 ## Conventions
@@ -210,12 +211,14 @@ docker build -t enelbot-coordinator coordinator/
 - Admin TXs (score, fund, advance) are signed and submitted by coordinator
 
 ## Pitfalls
-- `anchor-lang` 0.32.1 doesn't re-export `solana_program::hash` — use `solana-sha256-hasher` directly
-- `blake3 >= 1.6` pulls `constant_time_eq 0.4` which requires edition2024 — pin `blake3 = "=1.5.5"`
+- `anchor-lang` 0.32.1 doesn't re-export `solana_program::hash` -- use `solana-sha256-hasher` directly
+- `blake3 >= 1.6` pulls `constant_time_eq 0.4` which requires edition2024 -- pin `blake3 = "=1.5.5"`
 - `anchor-spl` needs `idl-build` feature for IDL generation: `idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]`
-- Anchor `AccountNamespace<Idl>` doesn't expose typed accessors — use `(program.account as any).accountName.fetch()`
+- Anchor `AccountNamespace<Idl>` doesn't expose typed accessors -- use `(program.account as any).accountName.fetch()`
 - Epoch IDs are serialized as 8-byte little-endian in PDA seeds
 - Market IDs are SHA256 hashes of the source market identifier (32 bytes)
+- On-chain program module is still named `enelbot` (Anchor discriminators depend on it, cannot rename without redeploying)
+- On-chain field `enel_mint` in GlobalState cannot be renamed (would change account layout)
 
 ## Deferred (V2+)
 - Decentralized scoring via on-chain market outcome reads (no admin trust)

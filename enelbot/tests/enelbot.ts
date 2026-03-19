@@ -117,7 +117,7 @@ describe("enelbot", () => {
     await airdrop(provider, minerKeypair.publicKey, 10 * LAMPORTS_PER_SOL);
     await airdrop(provider, miner2Keypair.publicKey, 10 * LAMPORTS_PER_SOL);
 
-    // Create $ENEL mint
+    // Create $STRK mint
     enelMint = await createMint(
       provider.connection,
       (admin as any).payer,
@@ -715,7 +715,7 @@ describe("enelbot", () => {
     });
 
     it("funds epoch 1", async () => {
-      const rewardAmount = 1_000_000 * 10 ** TOKEN_DECIMALS; // 1M ENEL
+      const rewardAmount = 1_000_000 * 10 ** TOKEN_DECIMALS; // 1M STRK
       const [epochState] = findPDA(
         [Buffer.from("epoch"), epochIdBuf(1)],
         program.programId

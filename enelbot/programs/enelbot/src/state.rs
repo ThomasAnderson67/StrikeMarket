@@ -2,9 +2,9 @@ use anchor_lang::prelude::*;
 
 // Pump.fun tokens on Solana typically use 6 decimals
 pub const TOKEN_DECIMALS: u32 = 6;
-pub const TIER_1_MINIMUM: u64 = 1_000_000 * 10u64.pow(TOKEN_DECIMALS);   // 1M $ENEL
-pub const TIER_2_MINIMUM: u64 = 10_000_000 * 10u64.pow(TOKEN_DECIMALS);  // 10M $ENEL
-pub const TIER_3_MINIMUM: u64 = 100_000_000 * 10u64.pow(TOKEN_DECIMALS); // 100M $ENEL
+pub const TIER_1_MINIMUM: u64 = 1_000_000 * 10u64.pow(TOKEN_DECIMALS);   // 1M $STRK
+pub const TIER_2_MINIMUM: u64 = 10_000_000 * 10u64.pow(TOKEN_DECIMALS);  // 10M $STRK
+pub const TIER_3_MINIMUM: u64 = 100_000_000 * 10u64.pow(TOKEN_DECIMALS); // 100M $STRK
 pub const MAX_TIER_MULTIPLIER: u64 = 3;
 pub const COOLDOWN_SECONDS: i64 = 86400; // 24 hours
 

@@ -53,7 +53,7 @@ describe("AuthService", () => {
       const miner = Keypair.generate().publicKey.toBase58();
       const { message, nonce } = authService.generateNonce(miner);
 
-      expect(message).toContain(`ENELBOT auth nonce: ${nonce}`);
+      expect(message).toContain(`Strike auth nonce: ${nonce}`);
       expect(message).toContain(`Miner: ${miner}`);
       expect(nonce).toMatch(/^[a-f0-9]{64}$/); // 32 bytes hex
     });
@@ -88,7 +88,7 @@ describe("AuthService", () => {
     it("rejects unknown nonce", async () => {
       const keypair = Keypair.generate();
       const miner = keypair.publicKey.toBase58();
-      const fakeMessage = `ENELBOT auth nonce: ${"a".repeat(64)}\nMiner: ${miner}\nTimestamp: ${Date.now()}`;
+      const fakeMessage = `Strike auth nonce: ${"a".repeat(64)}\nMiner: ${miner}\nTimestamp: ${Date.now()}`;
       const signature = signMessage(keypair, fakeMessage);
 
       await expect(authService.verify(miner, fakeMessage, signature)).rejects.toThrow(

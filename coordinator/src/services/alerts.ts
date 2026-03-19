@@ -6,7 +6,7 @@
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 
 export async function sendAlert(title: string, detail: string): Promise<void> {
-  const message = `[ENELBOT ALERT] ${title}\n${detail}`;
+  const message = `[STRIKE ALERT] ${title}\n${detail}`;
   console.error(message);
 
   if (!SLACK_WEBHOOK_URL) return;

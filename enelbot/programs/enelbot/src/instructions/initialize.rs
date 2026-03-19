@@ -75,6 +75,6 @@ pub fn handler(ctx: Context<Initialize>, params: InitializeParams) -> Result<()>
     epoch_state.market_count = params.market_count;
     epoch_state.bump = ctx.bumps.epoch_state;
 
-    msg!("ENELBOT initialized. Epoch 1 started at {}", now);
+    msg!("Strike initialized. Epoch 1 started at {}", now);
     Ok(())
 }

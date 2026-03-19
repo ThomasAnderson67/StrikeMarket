@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * End-to-end devnet test for ENELBOT.
+ * End-to-end devnet test for Strike.
  *
  * Tests the full mining lifecycle against the deployed program:
  *   initialize → stake → commit → (wait) → advance → reveal → score → fund → claim → close
@@ -13,8 +13,8 @@
  *
  * Requires:
  *   - Program deployed to devnet (2BewLeJcdz8cmdjo1WvhtNphFoc7wk9V6fXUk5vzb19Q)
- *   - $ENEL mint on devnet (DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk)
- *   - Admin wallet at ~/.config/solana/id.json with SOL + $ENEL
+ *   - $STRK mint on devnet (DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk)
+ *   - Admin wallet at ~/.config/solana/id.json with SOL + $STRK
  */
 
 import {
@@ -38,7 +38,7 @@ import fs from "fs";
 
 const RPC_URL = "https://api.devnet.solana.com";
 const PROGRAM_ID = new PublicKey("2BewLeJcdz8cmdjo1WvhtNphFoc7wk9V6fXUk5vzb19Q");
-const ENEL_MINT = new PublicKey("DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk");
+const STRK_MINT = new PublicKey("DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk");
 
 // Short epoch timing for testing
 const EPOCH_DURATION = 60;         // 60s
@@ -47,8 +47,8 @@ const REVEAL_START_OFFSET = 60;    // reveal: 60-80s
 const REVEAL_END_OFFSET = 80;
 
 const TOKEN_DECIMALS = 6;
-const TIER_1_AMOUNT = 1_000_000 * 10 ** TOKEN_DECIMALS; // 1M $ENEL
-const REWARD_AMOUNT = 100_000 * 10 ** TOKEN_DECIMALS;   // 100K $ENEL reward pool
+const TIER_1_AMOUNT = 1_000_000 * 10 ** TOKEN_DECIMALS; // 1M $STRK
+const REWARD_AMOUNT = 100_000 * 10 ** TOKEN_DECIMALS;   // 100K $STRK reward pool
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -100,7 +100,7 @@ function step(msg: string) {
 
 async function main() {
   console.log("═══════════════════════════════════════════════════════");
-  console.log("  ENELBOT End-to-End Devnet Test");
+  console.log("  Strike End-to-End Devnet Test");
   console.log("═══════════════════════════════════════════════════════");
 
   const connection = new Connection(RPC_URL, "confirmed");
@@ -117,7 +117,7 @@ async function main() {
   const miner = Keypair.generate();
   console.log(`\nAdmin:  ${admin.publicKey.toBase58()}`);
   console.log(`Miner:  ${miner.publicKey.toBase58()}`);
-  console.log(`Mint:   ${ENEL_MINT.toBase58()}`);
+  console.log(`Mint:   ${STRK_MINT.toBase58()}`);
 
   // PDAs
   const [globalState] = findPDA([Buffer.from("global")]);
@@ -156,20 +156,20 @@ async function main() {
     ok("Miner funded with 0.1 SOL from admin");
   }
 
-  // ── Step 2: Create miner token account + send $ENEL ───────────
+  // ── Step 2: Create miner token account + send $STRK ───────────
 
-  step("Create miner token account and transfer $ENEL");
+  step("Create miner token account and transfer $STRK");
   const adminAta = await getOrCreateAssociatedTokenAccount(
-    connection, admin, ENEL_MINT, admin.publicKey
+    connection, admin, STRK_MINT, admin.publicKey
   );
   const minerAta = await getOrCreateAssociatedTokenAccount(
-    connection, admin, ENEL_MINT, miner.publicKey
+    connection, admin, STRK_MINT, miner.publicKey
   );
   await transfer(
     connection, admin, adminAta.address, minerAta.address, admin,
     BigInt(TIER_1_AMOUNT) * 2n // Send 2x tier 1 for staking
   );
-  ok(`Transferred ${(TIER_1_AMOUNT * 2) / 10 ** TOKEN_DECIMALS} $ENEL to miner`);
+  ok(`Transferred ${(TIER_1_AMOUNT * 2) / 10 ** TOKEN_DECIMALS} $STRK to miner`);
 
   // ── Step 3: Initialize program ────────────────────────────────
 
@@ -189,7 +189,7 @@ async function main() {
         globalState,
         epochState: epochState1,
         vault,
-        enelMint: ENEL_MINT,
+        enelMint: STRK_MINT,
         admin: admin.publicKey,
         systemProgram: SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
@@ -260,7 +260,7 @@ async function main() {
 
   // ── Step 4: Stake ─────────────────────────────────────────────
 
-  step("Stake $ENEL (tier 1)");
+  step("Stake $STRK (tier 1)");
   const [minerState] = findPDA([Buffer.from("miner"), miner.publicKey.toBuffer()]);
 
   await program.methods
@@ -278,7 +278,7 @@ async function main() {
     .rpc();
 
   const ms = await (program.account as any).minerState.fetch(minerState);
-  ok(`Staked ${TIER_1_AMOUNT / 10 ** TOKEN_DECIMALS} $ENEL → tier ${ms.tier}`);
+  ok(`Staked ${TIER_1_AMOUNT / 10 ** TOKEN_DECIMALS} $STRK → tier ${ms.tier}`);
 
   // ── Step 5: Commit prediction ─────────────────────────────────
 
@@ -398,7 +398,7 @@ async function main() {
 
   // ── Step 9: Fund epoch ────────────────────────────────────────
 
-  step("Fund epoch (100K $ENEL reward pool)");
+  step("Fund epoch (100K $STRK reward pool)");
   await program.methods
     .fundEpoch(new BN(currentEpochId), new BN(REWARD_AMOUNT))
     .accounts({
@@ -412,7 +412,7 @@ async function main() {
     .rpc();
 
   const esAfterFund = await (program.account as any).epochState.fetch(activeEpochState);
-  ok(`Funded: ${esAfterFund.rewardAmount.toNumber() / 10 ** TOKEN_DECIMALS} $ENEL`);
+  ok(`Funded: ${esAfterFund.rewardAmount.toNumber() / 10 ** TOKEN_DECIMALS} $STRK`);
 
   // ── Step 10: Claim rewards ────────────────────────────────────
 
@@ -435,7 +435,7 @@ async function main() {
 
   const minerBalanceAfter = (await connection.getTokenAccountBalance(minerAta.address)).value.amount;
   const received = BigInt(minerBalanceAfter) - BigInt(minerBalanceBefore);
-  ok(`Claimed ${Number(received) / 10 ** TOKEN_DECIMALS} $ENEL (1/1 of pool = 100%)`);
+  ok(`Claimed ${Number(received) / 10 ** TOKEN_DECIMALS} $STRK (1/1 of pool = 100%)`);
 
   const recordAfter = await (program.account as any).minerEpochRecord.fetch(minerEpochRecord);
   ok(`claimed=${recordAfter.claimed}`);
@@ -470,10 +470,10 @@ async function main() {
   console.log("═══════════════════════════════════════════════════════");
   console.log(`\n  Epoch:    ${currentEpochId}`);
   console.log(`  Miner:    ${miner.publicKey.toBase58()}`);
-  console.log(`  Staked:   ${TIER_1_AMOUNT / 10 ** TOKEN_DECIMALS} $ENEL (tier 1)`);
+  console.log(`  Staked:   ${TIER_1_AMOUNT / 10 ** TOKEN_DECIMALS} $STRK (tier 1)`);
   console.log(`  Predicted: YES`);
   console.log(`  Credits:  1`);
-  console.log(`  Claimed:  ${Number(received) / 10 ** TOKEN_DECIMALS} $ENEL`);
+  console.log(`  Claimed:  ${Number(received) / 10 ** TOKEN_DECIMALS} $STRK`);
   console.log();
 }
 

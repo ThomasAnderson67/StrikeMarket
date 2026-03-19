@@ -1,7 +1,7 @@
 {
-  "name": "enelbot-coordinator",
+  "name": "strike-coordinator",
   "version": "0.1.0",
-  "description": "ENELBOT proof-of-prediction coordinator server",
+  "description": "Strike proof-of-prediction coordinator server",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",

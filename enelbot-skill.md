@@ -1,12 +1,12 @@
 ---
-name: enelbot-miner
-description: "Mine $ENEL by predicting Polymarket outcomes on Solana with stake-gated proof-of-prediction mining."
+name: strike-miner
+description: "Mine $STRK by predicting Polymarket outcomes on Solana with stake-gated proof-of-prediction mining."
 metadata: { "openclaw": { "emoji": "⚡", "requires": { "env": ["SOLANA_KEYPAIR_PATH"] } } }
 ---
 
-# ENELBOT Miner
+# Strike Miner
 
-Mine $ENEL by predicting outcomes on Polymarket prediction markets. Your AI agent analyzes live binary markets (Yes/No), commits hashed predictions on-chain (Solana), reveals them after resolution, and earns credits proportional to accuracy × tier. Credits are redeemable for $ENEL rewards each epoch.
+Mine $STRK by predicting outcomes on Polymarket prediction markets. Your AI agent analyzes live binary markets (Yes/No), commits hashed predictions on-chain (Solana), reveals them after resolution, and earns credits proportional to accuracy × tier. Credits are redeemable for $STRK rewards each epoch.
 
 **No external wallet service required.** Your agent holds a local Solana keypair. The coordinator returns unsigned transactions — your agent signs and submits them directly to Solana RPC.
 
@@ -16,7 +16,7 @@ Mine $ENEL by predicting outcomes on Polymarket prediction markets. Your AI agen
    - Generate one if needed: `solana-keygen new --outfile ~/.config/solana/id.json`
    - Fund with a small amount of SOL for transaction fees (~0.01 SOL covers hundreds of TXs)
 
-2. **$ENEL tokens** in a token account associated with your keypair. Minimum **1,000,000 $ENEL** (Tier 1) to mine.
+2. **$STRK tokens** in a token account associated with your keypair. Minimum **1,000,000 $STRK** (Tier 1) to mine.
    - Token has 6 decimals. 1,000,000 whole tokens = `1000000000000` base units.
    - Purchase on a Solana DEX (Raydium, Jupiter) or via Pump.fun.
 
@@ -51,17 +51,17 @@ Agent (this skill)              Coordinator                  Solana
 
 ## Tier System
 
-Staking $ENEL on the program is required to mine. Higher tiers earn more credits per correct prediction.
+Staking $STRK on the program is required to mine. Higher tiers earn more credits per correct prediction.
 
 | Tier | Minimum Stake | Credits per Correct Prediction |
 |------|---------------|-------------------------------|
-| 1 | 1,000,000 $ENEL | 1 credit |
-| 2 | 10,000,000 $ENEL | 2 credits |
-| 3 | 100,000,000 $ENEL | 3 credits |
+| 1 | 1,000,000 $STRK | 1 credit |
+| 2 | 10,000,000 $STRK | 2 credits |
+| 3 | 100,000,000 $STRK | 3 credits |
 
 ## Setup Flow
 
-When the user asks to mine $ENEL, follow these steps in order:
+When the user asks to mine $STRK, follow these steps in order:
 
 ### 1. Load Keypair and Resolve Miner Address
 
@@ -73,7 +73,7 @@ echo "Miner address: $MINER"
 ```
 
 **CHECKPOINT**: Tell the user their mining wallet address. Example:
-> Your mining wallet is `ABC...XYZ` on Solana. This address needs $ENEL tokens staked and a small amount of SOL for transaction fees.
+> Your mining wallet is `ABC...XYZ` on Solana. This address needs $STRK tokens staked and a small amount of SOL for transaction fees.
 
 Do NOT proceed until you have successfully resolved the wallet address.
 
@@ -85,14 +85,14 @@ solana balance "$MINER" --url "${SOLANA_RPC_URL:-http://localhost:8899}"
 
 If SOL balance is zero or very low (<0.005 SOL), the user needs to fund the wallet for transaction fees. Stop and inform them.
 
-### 3. Stake $ENEL
+### 3. Stake $STRK
 
-Miners must **stake** $ENEL on the program before they can submit predictions. Staking locks tokens in the program vault and assigns a tier based on staked amount.
+Miners must **stake** $STRK on the program before they can submit predictions. Staking locks tokens in the program vault and assigns a tier based on staked amount.
 
-**Step 1: Get your $ENEL token account address.** This is the associated token account (ATA) for your wallet and the $ENEL mint.
+**Step 1: Get your $STRK token account address.** This is the associated token account (ATA) for your wallet and the $STRK mint.
 
 ```bash
-MINER_TOKEN_ACCOUNT=$(spl-token accounts --owner "$MINER" --url "${SOLANA_RPC_URL:-http://localhost:8899}" | grep "$ENEL_MINT" | awk '{print $1}')
+MINER_TOKEN_ACCOUNT=$(spl-token accounts --owner "$MINER" --url "${SOLANA_RPC_URL:-http://localhost:8899}" | grep "$STRK_MINT" | awk '{print $1}')
 ```
 
 **Step 2: Get unsigned stake transaction from coordinator:**
@@ -115,9 +115,9 @@ Response: `{ "transaction": "<base64-encoded unsigned TX>" }`
 
 ```bash
 # Decode, sign, and send
-echo "$TX_BASE64" | base64 -d > /tmp/enelbot_tx.bin
+echo "$TX_BASE64" | base64 -d > /tmp/strike_tx.bin
 solana confirm -v $(
-  solana send-transaction /tmp/enelbot_tx.bin \
+  solana send-transaction /tmp/strike_tx.bin \
     --keypair "${SOLANA_KEYPAIR_PATH:-$HOME/.config/solana/id.json}" \
     --url "${SOLANA_RPC_URL:-http://localhost:8899}"
 )
@@ -310,7 +310,7 @@ When `epochId` increments, the previous epoch is scored. Go back to Step A for t
 
 ### 6. Claim Rewards
 
-After an epoch ends and is funded, claim your $ENEL rewards.
+After an epoch ends and is funded, claim your $STRK rewards.
 
 **Check credits:**
 
@@ -366,10 +366,10 @@ All coordinator endpoints return base64-encoded unsigned Solana transactions. Th
 TX_BASE64=$(echo "$RESPONSE" | jq -r '.transaction')
 
 # 2. Decode, sign, and submit
-echo "$TX_BASE64" | base64 -d > /tmp/enelbot_tx.bin
+echo "$TX_BASE64" | base64 -d > /tmp/strike_tx.bin
 
 # Using solana CLI:
-solana send-transaction /tmp/enelbot_tx.bin \
+solana send-transaction /tmp/strike_tx.bin \
   --keypair "${SOLANA_KEYPAIR_PATH:-$HOME/.config/solana/id.json}" \
   --url "${SOLANA_RPC_URL:-http://localhost:8899}" \
   --skip-preflight
@@ -395,7 +395,7 @@ T=0h         T=22h          T=24h         T=26h          T=48h
 - **Gap**: T=22h to T=24h — no commits, no reveals (prevents last-second gaming)
 - **Reveal window**: T=24h to T=26h — reveal predictions with salt
 - **Scoring**: T=26h+ — coordinator reads Polymarket outcomes, scores miners, funds epoch
-- **Claim**: After funding — claim proportional $ENEL rewards
+- **Claim**: After funding — claim proportional $STRK rewards
 
 ## API Reference
 
@@ -463,7 +463,7 @@ Use one retry helper for all coordinator calls.
 - **CommitWindowClosed**: You're past the commit deadline. Wait for the next epoch.
 - **RevealWindowNotOpen / RevealWindowClosed**: Not in the reveal window. Check epoch timing.
 - **HashMismatch**: Your reveal data doesn't match the committed hash. Verify salt, prediction, and market ID match exactly what you committed.
-- **InsufficientStake / NotEligible**: Stake more $ENEL to reach Tier 1 (1M minimum).
+- **InsufficientStake / NotEligible**: Stake more $STRK to reach Tier 1 (1M minimum).
 - **UnstakePending**: Cannot commit while unstake is pending. Cancel unstake or wait.
 - **EpochNotFunded**: Rewards not yet deposited. Try claiming later.
 - **AlreadyClaimed**: You already claimed this epoch. Skip it.
@@ -488,7 +488,7 @@ Use one retry helper for all coordinator calls.
 
 ```
 1. Load keypair               → solana address -k ~/.config/solana/id.json
-2. Stake $ENEL                → POST /v1/submit-stake → sign → submit
+2. Stake $STRK                → POST /v1/submit-stake → sign → submit
 3. Auth handshake              → POST /auth/nonce → sign → POST /auth/verify → JWT
 4. Get challenge               → GET /v1/challenge
 5. For each market:
