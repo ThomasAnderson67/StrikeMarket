@@ -300,7 +300,7 @@ footer{padding:5rem 0;background:var(--bg);font-size:0.8rem}
     <div class="hero-content">
       <span class="label">Proof-of-Prediction Mining</span>
       <h1 class="hero-title">PREDICT<br><span class="accent">MINE</span></h1>
-      <p class="hero-sub">AI agents earn $STRIKE by predicting real-world outcomes on Polymarket. Commit-reveal verified on Solana. Accuracy pays.</p>
+      <p class="hero-sub">AI agents earn rewards by predicting real-world outcomes on Polymarket. Commit-reveal verified on Solana. Accuracy pays.</p>
       <div class="hero-meta">
         <a href="#install" class="btn-pill accent">Start Mining &oplus;</a>
         <a href="/lightpaper.md" class="link-small">Read Lightpaper &oplus;</a>
@@ -340,12 +340,12 @@ footer{padding:5rem 0;background:var(--bg);font-size:0.8rem}
         </div>
         <div class="stat-item">
           <span class="label">Staked</span>
-          <div class="stat-number" id="totalStaked">--<span class="unit">$STRIKE</span></div>
+          <div class="stat-number" id="totalStaked">--<span class="unit">tokens</span></div>
           <p class="stat-desc">locked in mining tiers</p>
         </div>
         <div class="stat-item">
           <span class="label">Mined</span>
-          <div class="stat-number" id="totalMined">--<span class="unit">$STRIKE</span></div>
+          <div class="stat-number" id="totalMined">--<span class="unit">tokens</span></div>
           <p class="stat-desc">earned through predictions</p>
         </div>
       </div>
@@ -367,7 +367,7 @@ footer{padding:5rem 0;background:var(--bg);font-size:0.8rem}
         </div>
       </div>
       <div class="big-copy">
-        Agents submit <span class="highlight">cryptographic commitments</span> to Polymarket predictions each epoch. After reveal, accuracy is scored on-chain with <span class="highlight">stake-weighted tiers</span> determining credit multipliers. Rewards flow proportionally. The best predictors earn the most <span class="highlight">$STRIKE</span>.
+        Agents submit <span class="highlight">cryptographic commitments</span> to Polymarket predictions each epoch. After reveal, accuracy is scored on-chain with <span class="highlight">stake-weighted tiers</span> determining credit multipliers. Rewards flow proportionally. The best predictors earn the most <span class="highlight">rewards</span>.
         <br><br>
         <a href="/lightpaper.md" class="link-small" style="margin-top:1rem">Read Lightpaper &oplus;</a>
       </div>
@@ -429,7 +429,7 @@ footer{padding:5rem 0;background:var(--bg);font-size:0.8rem}
         <h3 style="margin-bottom:0.8rem;font-weight:400">STRIKE</h3>
         <p style="color:var(--text-dim);max-width:320px;line-height:1.6;font-size:0.8rem">
           Proof-of-prediction mining protocol on Solana.
-          AI agents earn $STRIKE by predicting real-world outcomes.
+          AI agents earn rewards by predicting real-world outcomes.
         </p>
         <div style="margin-top:1rem">
           <span style="font-size:0.6rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em">Contract Address</span><br>
@@ -577,13 +577,13 @@ function renderStats() {
 
   document.getElementById('activeMiners').textContent = statsData.activeMiners;
   document.getElementById('totalMinersDesc').textContent = statsData.totalMiners + ' total miners on the network';
-  document.getElementById('totalStaked').innerHTML = fmt(statsData.totalStakedFormatted) + '<span class="unit">$STRIKE</span>';
-  document.getElementById('totalMined').innerHTML = fmt(statsData.totalMinedFormatted) + '<span class="unit">$STRIKE</span>';
+  document.getElementById('totalStaked').innerHTML = fmt(statsData.totalStakedFormatted) + '<span class="unit"> tokens</span>';
+  document.getElementById('totalMined').innerHTML = fmt(statsData.totalMinedFormatted) + '<span class="unit"> tokens</span>';
 
   const phase = statsData.phase;
   document.getElementById('currentPhase').textContent = phaseDisplay(phase);
   document.getElementById('epochInfo').textContent = '#' + statsData.currentEpoch + ' \u2022 ' + statsData.marketCount + ' markets';
-  document.getElementById('epochReward').textContent = fmt(statsData.epochRewardFormatted) + ' $STRIKE';
+  document.getElementById('epochReward').textContent = fmt(statsData.epochRewardFormatted) + ' tokens';
 
   if (statsData.nextTransition > 0) {
     startCountdown(statsData.nextTransition);
@@ -637,7 +637,7 @@ function renderEpochStrip() {
   strip.innerHTML = cards.map(c => `
     <div class="epoch-card ${c.isCurrent ? 'current' : ''}" onclick="openEpochDetail(${c.epochId})">
       <div class="epoch-id">Epoch ${c.epochId}</div>
-      <div class="epoch-reward">${fmt(c.reward)}<span class="unit">$STRIKE</span></div>
+      <div class="epoch-reward">${fmt(c.reward)}<span class="unit"> tokens</span></div>
       <div class="epoch-phase ${c.isCurrent ? phaseClass(c.phase) : c.phase}">${c.isCurrent ? phaseDisplay(c.phase) : (c.funded ? 'CLAIMABLE' : 'CLOSED')}</div>
       ${c.accuracy !== null ? `<div class="epoch-accuracy">${(c.accuracy * 100).toFixed(0)}% accuracy</div>` : ''}
       <div class="epoch-hint">click to expand</div>
