@@ -370,7 +370,7 @@
     <div class="network-info">
       <span>Network: <strong>Devnet</strong></span>
       <span>Program: <a href="https://solscan.io/account/2BewLeJcdz8cmdjo1WvhtNphFoc7wk9V6fXUk5vzb19Q?cluster=devnet" target="_blank">2Bew...b19Q</a></span>
-      <span>Token: <a href="https://solscan.io/token/DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk?cluster=devnet" target="_blank">$STRK</a></span>
+      <span>Token: <a href="https://solscan.io/token/DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk?cluster=devnet" target="_blank">$STRIKE</a></span>
       <span id="lastUpdated"></span>
     </div>
 
@@ -437,11 +437,11 @@
         setHTML("activeMiners", `${data.activeMiners}<span class="unit"></span>`);
         setHTML("totalMiners", `${data.totalMiners} total registered`);
 
-        setHTML("totalStaked", `${fmt(data.totalStakedFormatted)}<span class="unit"> $STRK</span>`);
-        setHTML("totalMined", `${fmt(data.totalMinedFormatted)}<span class="unit"> $STRK</span>`);
-        setHTML("epochReward", `${fmt(data.epochRewardFormatted)}<span class="unit"> $STRK</span>`);
+        setHTML("totalStaked", `${fmt(data.totalStakedFormatted)}<span class="unit"> $STRIKE</span>`);
+        setHTML("totalMined", `${fmt(data.totalMinedFormatted)}<span class="unit"> $STRIKE</span>`);
+        setHTML("epochReward", `${fmt(data.epochRewardFormatted)}<span class="unit"> $STRIKE</span>`);
         setHTML("fundedStatus", data.funded ? "Funded" : "Not yet funded");
-        setHTML("vaultBalance", `${fmt(data.vaultBalanceFormatted)}<span class="unit"> $STRK</span>`);
+        setHTML("vaultBalance", `${fmt(data.vaultBalanceFormatted)}<span class="unit"> $STRIKE</span>`);
         setHTML("marketCount", `${data.marketCount}<span class="unit"> active</span>`);
         setHTML("creditsInfo", `${data.totalCredits} total credits`);
 
