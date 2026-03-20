@@ -233,6 +233,14 @@ export class EpochScheduler {
 
   // ── Helpers ──────────────────────────────────────────────────
 
+  /** Force re-sync from chain (used by admin endpoints) */
+  async resync(): Promise<void> {
+    await this.syncFromChain();
+    this.scoring = false;
+    this.scoringFailed = false;
+    this.updatePhase();
+  }
+
   /** Read on-chain state to sync epoch timing */
   private async syncFromChain(): Promise<void> {
     try {

@@ -111,9 +111,10 @@ async function main() {
   // Admin: force advance epoch (skips scoring/funding for stuck epochs)
   app.post("/v1/admin/force-advance", async (request, reply) => {
     try {
-      // Scan markets for the next epoch
       const nextMarkets = await epochManager.startEpoch();
       const txSig = await epochManager.advanceEpoch(nextMarkets.marketCount);
+      // Re-sync scheduler to pick up the new epoch
+      await scheduler.resync();
       return { success: true, tx: txSig, nextMarketCount: nextMarkets.marketCount };
     } catch (err) {
       return reply.status(500).send({ error: "Force advance failed", detail: String(err) });
