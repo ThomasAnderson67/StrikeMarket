@@ -108,6 +108,18 @@ async function main() {
   // Expose scheduler status
   app.get("/v1/scheduler", async () => scheduler.getStatus());
 
+  // Admin: force advance epoch (skips scoring/funding for stuck epochs)
+  app.post("/v1/admin/force-advance", async (request, reply) => {
+    try {
+      // Scan markets for the next epoch
+      const nextMarkets = await epochManager.startEpoch();
+      const txSig = await epochManager.advanceEpoch(nextMarkets.marketCount);
+      return { success: true, tx: txSig, nextMarketCount: nextMarkets.marketCount };
+    } catch (err) {
+      return reply.status(500).send({ error: "Force advance failed", detail: String(err) });
+    }
+  });
+
   // Dashboard stats endpoint (cached 60s to avoid RPC storms)
   const STATS_CACHE_TTL_MS = 60_000;
   let statsCache: { data: any; expiresAt: number } | null = null;
