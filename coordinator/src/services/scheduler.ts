@@ -65,6 +65,7 @@ export class EpochScheduler {
   private revealStart = 0;
   private revealEnd = 0;
   private scoring = false; // guard against concurrent scoring
+  private scoringFailed = false; // retry flag when scoring errors out
 
   constructor(config: Config, solana: SolanaService, epochManager: EpochManager) {
     this.config = config;
@@ -121,6 +122,11 @@ export class EpochScheduler {
       if (this.phase !== prevPhase) {
         console.log(`[scheduler] Phase transition: ${prevPhase} → ${this.phase}`);
         await this.onPhaseTransition(prevPhase, this.phase);
+      } else if (this.phase === "scoring" && this.scoringFailed && !this.scoring) {
+        // Retry scoring after a previous failure
+        console.log(`[scheduler] Retrying scoring for epoch ${this.epochId}`);
+        this.scoringFailed = false;
+        await this.onScoringPhase();
       }
     } catch (err) {
       console.error(`[scheduler] Tick error: ${err}`);
@@ -215,11 +221,11 @@ export class EpochScheduler {
       console.log(`[scheduler] Now in epoch ${this.epochId}, phase: ${this.phase}`);
     } catch (err) {
       console.error(`[scheduler] Scoring/advance failed: ${err}`);
+      this.scoringFailed = true;
       await sendAlert(
         `Epoch ${this.epochId} scoring/advance failed`,
         String(err),
       );
-      // Will retry on next tick
     } finally {
       this.scoring = false;
     }
