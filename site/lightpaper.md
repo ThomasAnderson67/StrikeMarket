@@ -2,7 +2,7 @@
 
 ## Abstract
 
-Bitcoin gave humans a store of value they chose over fiat. Agents will do the same.
+Agents are the new miners. But instead of burning electricity to solve puzzles, they earn by solving the future.
 
 Strike is a proof-of-prediction mining protocol on Solana. Agents earn token by doing the one thing that separates intelligence from noise: calling the future correctly. No arbitrary puzzles. No proof-of-work. Pure alpha, verified on-chain.
 
@@ -14,15 +14,15 @@ The agent economy is here. Autonomous AI agents are trading, reasoning, and exec
 
 Existing mining primitives reward compute power or arbitrary task completion. Neither captures what makes an agent valuable. An agent that sees the future should earn more than one that doesn't.
 
-Strike fixes this.
+Strike aligns incentives: the smarter the agent, the more it earns.
 
 ---
 
 ## Overview
 
-Strike is an epoch-based reward system built on Solana. Agents mine token by submitting predictions on Polymarket binary markets. At the end of each epoch, rewards are distributed proportionally to miners based on their prediction accuracy relative to all other active miners.
+Strike is a continuous crypto prediction mining protocol on Solana. Every 15 minutes, Polymarket opens a new "Up or Down" round for 7 major tokens — BTC, ETH, SOL, XRP, DOGE, HYPE, BNB. Agents mine by predicting price direction round after round, ~96 rounds per day, across 24-hour epochs.
 
-The better your agent predicts, the more token it earns. Simple. Meritocratic. On-chain.
+At epoch end, rewards are distributed proportionally based on total prediction accuracy relative to all other active miners. The better your agent predicts, the more token it earns. Simple. Meritocratic. On-chain.
 
 Supply is fixed at 100,000,000,000 tokens. Launched fairly on Pump.fun.
 
@@ -44,19 +44,19 @@ Supply is fixed at 100,000,000,000 tokens. Launched fairly on Pump.fun.
 
 This proves wallet control and prevents abuse.
 
-### C. Submit Predictions
+### C. Submit Predictions (Continuous Mining)
 
-1. Agent receives a challenge set of active Polymarket binary markets.
-2. Agent commits a SHA-256 hash of its prediction on-chain before market close.
-3. After the reveal window opens, agent reveals prediction in clear.
+1. Agent requests the current round — a 15-minute "Up or Down" market for each of 7 crypto tokens.
+2. Agent commits a SHA-256 hash of its prediction on-chain before the round resolves.
+3. After the round resolves (~15 min), agent reveals the prediction in clear.
 4. Smart contract verifies the hash matches. No hindsight. No gaming.
+5. Agent repeats for each new round throughout the 24-hour epoch. Both commit and reveal windows are open for the entire epoch — miners commit and reveal continuously.
 
 ### D. Epoch Resolution
 
-1. Each epoch runs for 26 hours (22h commit, 2h gap, 2h reveal).
-2. At epoch close, all predictions are resolved against Polymarket outcomes.
-3. Each miner receives credits based on accuracy and tier multiplier.
-4. Voided or cancelled markets are excluded from scoring.
+1. Each epoch runs for 24 hours. Within an epoch, new rounds appear every 15 minutes (~96 rounds/day).
+2. Rounds are resolved via Chainlink data streams — price went up or down.
+3. At epoch close, credits are summed across all rounds: total correct predictions x tier multiplier.
 
 ### E. Claim Rewards
 
@@ -93,13 +93,26 @@ Tiers are intentionally accessible at any market cap. The goal is maximum partic
 
 ---
 
+## Trust Model
+
+In V1, the Strike coordinator is a centralized server operated by the team. It performs two privileged actions:
+
+1. **Scoring**: After each epoch, the coordinator resolves market outcomes via Polymarket and submits `score_miner` transactions on-chain.
+2. **Funding**: The coordinator submits `fund_epoch` transactions to distribute rewards from the treasury.
+
+On-chain guards constrain the coordinator: commit hashes must match reveals, credits cannot exceed the market count, and reward math is enforced by the smart contract. The coordinator cannot fabricate predictions or inflate credits beyond what the on-chain state allows.
+
+V2 replaces coordinator trust with on-chain oracle reads and multi-sig admin (see Roadmap).
+
+---
+
 ## Security and Abuse Resistance
 
 - Wallet-signature authentication on every session
-- Commit-reveal scheme: predictions are hashed and committed on-chain before market resolution
+- Commit-reveal scheme: predictions are hashed and committed on-chain before outcomes are known
 - Deterministic scoring: same inputs always produce the same output
 - Tier thresholds enforced both on-chain and off-chain
-- Non-gameable: predictions must be submitted before outcomes are known
+- Non-gameable: coordinator rejects commits for rounds whose market has already resolved
 - Sybil resistance via stake-gated tier thresholds
 
 ---
@@ -108,9 +121,9 @@ Tiers are intentionally accessible at any market cap. The goal is maximum partic
 
 Existing agent mining protocols reward arbitrary task completion. NLP puzzles, synthetic challenges, busy work. None of it has real-world value. They reward inference capacity, not intelligence.
 
-Predictions on live markets are different:
-- **Verifiable**: outcomes are on-chain, public, immutable
-- **Valuable**: real alpha has real market value
+Crypto price predictions are different:
+- **Verifiable**: predictions are committed on-chain (Solana), outcomes are resolved via Chainlink data streams on Polymarket
+- **Continuous**: new rounds every 15 minutes, 7 tokens, 24/7
 - **Competitive**: your agent competes against every other agent in real time
 - **Meritocratic**: the best agent wins, every epoch, forever
 
@@ -120,7 +133,7 @@ This is not mining. This is proof of alpha.
 
 ## Why Solana
 
-Speed. Cost. Culture. Solana is where agents live and where degens play. Polymarket is the largest prediction market in the world, and Solana is the fastest chain to verify predictions on-chain.
+Speed. Cost. Culture. Solana is where agents live and where degens play. Strike uses Polymarket — the largest prediction market in the world — as its source of truth for market outcomes, while all mining activity (commits, reveals, scoring, claims) is verified on Solana.
 
 ---
 

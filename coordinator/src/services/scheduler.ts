@@ -44,6 +44,12 @@ export interface SchedulerStatus {
   revealEnd: number;
   nextTransition: number;
   running: boolean;
+  /** True if the current epoch was skipped due to zero eligible markets */
+  skippedEpoch: boolean;
+  /** Current round ID within the epoch (0 if none) */
+  currentRoundId: number;
+  /** Total rounds started in this epoch */
+  totalRounds: number;
 }
 
 /** How often to poll on-chain state (default 30s) */
@@ -52,12 +58,17 @@ const POLL_INTERVAL_MS = parseInt(process.env.SCHEDULER_POLL_MS || "30000");
 /** Delay after reveal ends before starting scoring (allow stragglers) */
 const SCORING_DELAY_MS = parseInt(process.env.SCORING_DELAY_MS || "10000");
 
+/** Round interval: how often to start a new 15-min round (default 15 min) */
+const ROUND_INTERVAL_MS = parseInt(process.env.ROUND_INTERVAL_MS || "900000");
+
 export class EpochScheduler {
   private epochManager: EpochManager;
   private solana: SolanaService;
   private config: Config;
 
   private timer: ReturnType<typeof setInterval> | null = null;
+  private roundTimer: ReturnType<typeof setInterval> | null = null;
+  private resolveTimer: ReturnType<typeof setInterval> | null = null;
   private phase: SchedulerPhase = "booting";
   private epochId = 0;
   private epochStart = 0;
@@ -66,6 +77,7 @@ export class EpochScheduler {
   private revealEnd = 0;
   private scoring = false; // guard against concurrent scoring
   private scoringFailed = false; // retry flag when scoring errors out
+  private skippedEpoch = false; // true if current epoch was auto-skipped (zero markets)
 
   constructor(config: Config, solana: SolanaService, epochManager: EpochManager) {
     this.config = config;
@@ -95,11 +107,13 @@ export class EpochScheduler {
       clearInterval(this.timer);
       this.timer = null;
     }
+    this.stopRoundTimers();
     console.log("[scheduler] Stopped");
   }
 
   /** Get current scheduler status */
   getStatus(): SchedulerStatus {
+    const currentRound = this.epochManager.getCurrentRound();
     return {
       phase: this.phase,
       epochId: this.epochId,
@@ -109,6 +123,9 @@ export class EpochScheduler {
       revealEnd: this.revealEnd,
       nextTransition: this.getNextTransitionTime(),
       running: this.timer !== null,
+      skippedEpoch: this.skippedEpoch,
+      currentRoundId: currentRound?.roundId ?? 0,
+      totalRounds: this.epochManager.getRounds().length,
     };
   }
 
@@ -171,18 +188,65 @@ export class EpochScheduler {
     }
   }
 
-  /** Scan markets and build challenge set at epoch start */
+  /** Scan markets and build challenge set at epoch start, start round timers */
   private async onCommitPhaseStart(): Promise<void> {
     console.log(`[scheduler] Epoch ${this.epochId} commit phase started`);
+    this.skippedEpoch = false;
     try {
       const result = await this.epochManager.startEpoch();
       if (result.skipped) {
-        console.log("[scheduler] No eligible markets — epoch will have no challenges");
+        console.log(
+          `[scheduler] No eligible markets — auto-skipping epoch ${this.epochId}`
+        );
+        this.skippedEpoch = true;
+        await this.autoSkipEpoch();
       } else {
         console.log(`[scheduler] Challenge set ready: ${result.marketCount} markets`);
+        this.startRoundTimers();
       }
     } catch (err) {
       console.error(`[scheduler] Failed to start epoch: ${err}`);
+    }
+  }
+
+  /**
+   * Auto-skip an epoch with zero eligible markets.
+   * Advances on-chain to the next epoch immediately, then re-syncs.
+   */
+  private async autoSkipEpoch(): Promise<void> {
+    try {
+      // Advance on-chain with 0 markets
+      const advanceTx = await this.epochManager.advanceEpoch(0);
+      console.log(
+        `[scheduler] Auto-skipped epoch ${this.epochId}, advanced on-chain (tx: ${advanceTx})`
+      );
+
+      // Re-sync from chain to pick up the new epoch
+      await this.syncFromChain();
+      this.skippedEpoch = false;
+
+      // Start the new epoch (scan markets again for the next epoch)
+      const result = await this.epochManager.startEpoch();
+      if (result.skipped) {
+        // Still no markets — stay in commit phase but mark as skipped.
+        // The next tick will re-evaluate. Don't recurse infinitely.
+        console.log(
+          `[scheduler] Next epoch ${this.epochId} also has no markets. Waiting for next poll.`
+        );
+        this.skippedEpoch = true;
+      } else {
+        console.log(
+          `[scheduler] New epoch ${this.epochId} has ${result.marketCount} markets`
+        );
+      }
+      this.updatePhase();
+    } catch (err) {
+      console.error(`[scheduler] Auto-skip failed: ${err}`);
+      this.skippedEpoch = true;
+      await sendAlert(
+        `Epoch ${this.epochId} auto-skip failed`,
+        String(err),
+      );
     }
   }
 
@@ -190,6 +254,7 @@ export class EpochScheduler {
   private async onScoringPhase(): Promise<void> {
     if (this.scoring) return; // prevent re-entry
     this.scoring = true;
+    this.stopRoundTimers();
 
     console.log(`[scheduler] Epoch ${this.epochId} scoring phase started`);
 
@@ -231,6 +296,73 @@ export class EpochScheduler {
     }
   }
 
+  // ── Round timers ──────────────────────────────────────────────
+
+  /** Start the round timer: every ROUND_INTERVAL_MS, start a new round and try to resolve past rounds */
+  private startRoundTimers(): void {
+    this.stopRoundTimers();
+
+    // Start new rounds periodically
+    this.roundTimer = setInterval(async () => {
+      try {
+        if (this.phase !== "commit" && this.phase !== "gap" && this.phase !== "reveal") {
+          return; // Only start rounds during the epoch
+        }
+
+        // Don't start new rounds past the commit window
+        const now = Math.floor(Date.now() / 1000);
+        if (now >= this.commitEnd) {
+          console.log("[scheduler] Past commit window — not starting new rounds");
+          return;
+        }
+
+        const round = await this.epochManager.startRound();
+        if (round) {
+          console.log(
+            `[scheduler] Started round ${round.roundId}: ${round.markets.length} markets`
+          );
+        }
+      } catch (err) {
+        console.error(`[scheduler] Round start error: ${err}`);
+      }
+    }, ROUND_INTERVAL_MS);
+
+    // Resolve past rounds periodically (check every 30s)
+    this.resolveTimer = setInterval(async () => {
+      try {
+        const rounds = this.epochManager.getRounds();
+        const now = Math.floor(Date.now() / 1000);
+
+        for (const round of rounds) {
+          if (round.resolved) continue;
+          // Only try to resolve rounds whose end time has passed
+          if (now < round.endsAt) continue;
+
+          await this.epochManager.resolveRound(round.roundId);
+        }
+      } catch (err) {
+        console.error(`[scheduler] Round resolve error: ${err}`);
+      }
+    }, POLL_INTERVAL_MS);
+
+    console.log(
+      `[scheduler] Round timers started: new round every ${ROUND_INTERVAL_MS / 1000}s, ` +
+      `resolve check every ${POLL_INTERVAL_MS / 1000}s`
+    );
+  }
+
+  /** Stop round timers */
+  private stopRoundTimers(): void {
+    if (this.roundTimer) {
+      clearInterval(this.roundTimer);
+      this.roundTimer = null;
+    }
+    if (this.resolveTimer) {
+      clearInterval(this.resolveTimer);
+      this.resolveTimer = null;
+    }
+  }
+
   // ── Helpers ──────────────────────────────────────────────────
 
   /** Force re-sync from chain (used by admin endpoints) */
@@ -238,6 +370,7 @@ export class EpochScheduler {
     await this.syncFromChain();
     this.scoring = false;
     this.scoringFailed = false;
+    this.skippedEpoch = false;
     this.updatePhase();
   }
 

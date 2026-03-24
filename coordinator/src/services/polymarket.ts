@@ -20,6 +20,50 @@ interface GammaMarket {
   liquidity?: string;
 }
 
+// ── Crypto 15-min series types ────────────────────────────────────────
+
+/** 7 crypto tokens with 15-min Up/Down markets on Polymarket */
+export const CRYPTO_15M_SERIES = [
+  "btc-up-or-down-15m",
+  "eth-up-or-down-15m",
+  "sol-up-or-down-15m",
+  "xrp-up-or-down-15m",
+  "doge-up-or-down-15m",
+  "hype-up-or-down-15m",
+  "bnb-up-or-down-15m",
+] as const;
+
+/** A single market within a series event */
+export interface SeriesEventMarket {
+  conditionId: string;
+  slug?: string;
+  outcomes?: string | string[];
+  outcomePrices?: string | string[];
+  closed?: boolean;
+  active?: boolean;
+  endDate?: string;
+  question?: string;
+}
+
+/** An event (15-min round) from the series endpoint */
+export interface SeriesEvent {
+  id?: string;
+  title?: string;
+  slug?: string;
+  ticker?: string;
+  active?: boolean;
+  closed?: boolean;
+  endDate?: string;
+  markets?: SeriesEventMarket[];
+}
+
+/** Response from GET /series?slug=... */
+export interface SeriesResponse {
+  slug?: string;
+  title?: string;
+  events?: SeriesEvent[];
+}
+
 export interface PolymarketMarket {
   /** Polymarket condition ID (hex) */
   conditionId: string;
@@ -51,6 +95,10 @@ export interface ChallengeMarket {
   sourceMarketId: string;
   /** Human-readable question */
   question: string;
+  /** End date of the market's round (unix timestamp), used for commit validation */
+  endDate?: number;
+  /** Event slug for fetching resolution data (crypto 15-min markets) */
+  eventSlug?: string;
 }
 
 // ── Polymarket service ────────────────────────────────────────────────
@@ -200,6 +248,220 @@ export class PolymarketService {
       sourceMarketId: m.conditionId,
       question: m.question,
     }));
+  }
+
+  // ── Crypto 15-min round methods ─────────────────────────────────
+
+  /**
+   * Scan all 7 crypto 15-min series for the current active round.
+   * For each series, finds the active, not-closed event closest to resolving.
+   * Returns those as the current round's markets.
+   */
+  async scanCryptoRound(): Promise<ChallengeMarket[]> {
+    console.log("[polymarket] Scanning crypto 15-min round");
+
+    const markets: ChallengeMarket[] = [];
+
+    for (const slug of CRYPTO_15M_SERIES) {
+      try {
+        const event = await this.fetchCurrentSeriesEvent(slug);
+        if (!event) continue;
+
+        // Each event should have exactly one market (the Up/Down binary)
+        const market = event.markets?.[0];
+        if (!market) continue;
+
+        const conditionId = market.conditionId;
+        if (!conditionId) continue;
+
+        const question = event.title || market.question || `${slug} round`;
+        const endDate = event.endDate || market.endDate || "";
+
+        markets.push({
+          marketId: createHash("sha256").update(conditionId).digest(),
+          sourceMarketId: conditionId,
+          question,
+          endDate: endDate ? Math.floor(new Date(endDate).getTime() / 1000) : 0,
+          eventSlug: event.slug || event.ticker || undefined,
+        });
+      } catch (err) {
+        console.error(`[polymarket] Error scanning series ${slug}: ${err}`);
+      }
+    }
+
+    console.log(`[polymarket] Found ${markets.length} crypto 15-min markets for current round`);
+    return markets;
+  }
+
+  /**
+   * Resolve outcomes for crypto 15-min round markets.
+   * Up = YES (outcome true), Down = NO (outcome false).
+   */
+  async resolveRound(markets: ChallengeMarket[]): Promise<MarketOutcome[]> {
+    console.log(`[polymarket] Resolving crypto round: ${markets.length} markets`);
+
+    const outcomes: MarketOutcome[] = [];
+
+    for (const market of markets) {
+      try {
+        // For crypto 15-min markets, fetch via event slug (conditionId search returns wrong markets)
+        let resolved: PolymarketMarket | null = null;
+
+        if (market.eventSlug) {
+          resolved = await this.fetchMarketByEventSlug(market.eventSlug);
+        }
+        if (!resolved) {
+          resolved = await this.fetchMarket(market.sourceMarketId);
+        }
+
+        if (!resolved) {
+          outcomes.push({ sourceMarketId: market.sourceMarketId, outcome: null });
+          continue;
+        }
+
+        if (!resolved.closed) {
+          outcomes.push({ sourceMarketId: market.sourceMarketId, outcome: null });
+          continue;
+        }
+
+        // Determine winner from outcomePrices
+        // Crypto markets: outcomes are "Up"/"Down". General markets: "Yes"/"No".
+        const upOrYesIndex = resolved.outcomes.findIndex(
+          (o) => o.toLowerCase() === "up" || o.toLowerCase() === "yes"
+        );
+        const downOrNoIndex = resolved.outcomes.findIndex(
+          (o) => o.toLowerCase() === "down" || o.toLowerCase() === "no"
+        );
+
+        if (upOrYesIndex === -1 || downOrNoIndex === -1) {
+          outcomes.push({ sourceMarketId: market.sourceMarketId, outcome: null });
+          continue;
+        }
+
+        const upPrice = resolved.outcomePrices[upOrYesIndex];
+        const downPrice = resolved.outcomePrices[downOrNoIndex];
+
+        if (upPrice >= 0.99) {
+          // Up/Yes won → outcome true
+          outcomes.push({ sourceMarketId: market.sourceMarketId, outcome: true });
+        } else if (downPrice >= 0.99) {
+          // Down/No won → outcome false
+          outcomes.push({ sourceMarketId: market.sourceMarketId, outcome: false });
+        } else {
+          outcomes.push({ sourceMarketId: market.sourceMarketId, outcome: null });
+        }
+      } catch (err) {
+        console.error(`[polymarket] Error resolving ${market.sourceMarketId}: ${err}`);
+        outcomes.push({ sourceMarketId: market.sourceMarketId, outcome: null });
+      }
+    }
+
+    const resolved = outcomes.filter((o) => o.outcome !== null).length;
+    console.log(
+      `[polymarket] Resolved ${resolved}/${markets.length} round markets (${markets.length - resolved} pending/voided)`
+    );
+    return outcomes;
+  }
+
+  /**
+   * Fetch a market's resolution data via its event slug.
+   * Used for crypto 15-min markets where conditionId search returns wrong results.
+   */
+  private async fetchMarketByEventSlug(eventSlug: string): Promise<PolymarketMarket | null> {
+    try {
+      const url = new URL("/events", GAMMA_URL);
+      url.searchParams.set("slug", eventSlug);
+      url.searchParams.set("limit", "1");
+
+      const res = await fetch(url.toString(), {
+        headers: { Accept: "application/json" },
+      });
+
+      if (!res.ok) return null;
+
+      const data = await res.json();
+      const events: SeriesEvent[] = Array.isArray(data) ? data : [];
+      if (events.length === 0) return null;
+
+      const event = events[0];
+      const market = event.markets?.[0];
+      if (!market) return null;
+
+      const outcomes = this.parseJsonArray(market.outcomes) as string[];
+      const outcomePrices = (this.parseJsonArray(market.outcomePrices) as string[]).map(Number);
+
+      return {
+        conditionId: market.conditionId || "",
+        question: event.title || market.question || "",
+        outcomes,
+        outcomePrices,
+        endDate: event.endDate ? Math.floor(new Date(event.endDate).getTime() / 1000) : 0,
+        volume: 0,
+        closed: !!event.closed,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Fetch the current active event for a crypto token.
+   *
+   * Uses calculated slug instead of the series endpoint (which returns 18K+ events).
+   * Ticker format: {token}-updown-15m-{unix_timestamp}
+   * The timestamp aligns to 15-minute boundaries (floor(now / 900) * 900).
+   */
+  private async fetchCurrentSeriesEvent(slug: string): Promise<SeriesEvent | null> {
+    // Extract token prefix from series slug: "btc-up-or-down-15m" → "btc"
+    const token = slug.split("-")[0];
+
+    // Calculate current 15-minute boundary
+    const nowSec = Math.floor(Date.now() / 1000);
+    const roundTs = Math.floor(nowSec / 900) * 900;
+
+    // Construct the event slug: btc-updown-15m-{timestamp}
+    const eventSlug = `${token}-updown-15m-${roundTs}`;
+
+    try {
+      const url = new URL("/events", GAMMA_URL);
+      url.searchParams.set("slug", eventSlug);
+      url.searchParams.set("limit", "1");
+
+      const res = await fetch(url.toString(), {
+        headers: { Accept: "application/json" },
+      });
+
+      if (!res.ok) {
+        console.error(`[polymarket] Events API error for ${eventSlug}: ${res.status}`);
+        return null;
+      }
+
+      const data = await res.json();
+      const events: SeriesEvent[] = Array.isArray(data) ? data : [];
+
+      if (events.length === 0) {
+        // Try the next upcoming round (current round may not be created yet)
+        const nextRoundTs = roundTs + 900;
+        const nextSlug = `${token}-updown-15m-${nextRoundTs}`;
+        const url2 = new URL("/events", GAMMA_URL);
+        url2.searchParams.set("slug", nextSlug);
+        url2.searchParams.set("limit", "1");
+
+        const res2 = await fetch(url2.toString(), {
+          headers: { Accept: "application/json" },
+        });
+        if (!res2.ok) return null;
+
+        const data2 = await res2.json();
+        const events2: SeriesEvent[] = Array.isArray(data2) ? data2 : [];
+        return events2[0] || null;
+      }
+
+      return events[0] || null;
+    } catch (err) {
+      console.error(`[polymarket] Failed to fetch event for ${slug}: ${err}`);
+      return null;
+    }
   }
 
   // ── Private helpers ──────────────────────────────────────────────

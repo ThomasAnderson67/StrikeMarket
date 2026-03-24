@@ -9,7 +9,7 @@ export function registerChallengeRoutes(
   epochManager: EpochManager,
   solana: SolanaService
 ) {
-  // GET /v1/challenge — Get current epoch's challenge set (market list)
+  // GET /v1/challenge — Get current round's markets (crypto 15-min)
   app.get(
     "/v1/challenge",
     { preHandler: authHook(authService) },
@@ -20,34 +20,31 @@ export function registerChallengeRoutes(
       try {
         const globalState = await solana.getGlobalState();
         const currentEpoch = (globalState as any).currentEpoch.toNumber();
-        const epochState = await solana.getEpochState(currentEpoch);
-        const epochStart = (epochState as any).epochStart.toNumber();
-        const commitEndOffset = (globalState as any).commitEndOffset.toNumber();
 
-        const now = Math.floor(Date.now() / 1000);
-        const commitDeadline = epochStart + commitEndOffset;
+        const currentRound = epochManager.getCurrentRound();
 
-        const markets = epochManager.getChallengeMarkets();
-
-        if (markets.length === 0) {
+        if (!currentRound) {
           return reply.status(200).send({
             epochId: currentEpoch,
             markets: [],
-            message: "No eligible markets this epoch. Epoch will be skipped.",
+            message: "No active round. Waiting for next 15-min round.",
             skipped: true,
           });
         }
 
         return {
           epochId: currentEpoch,
-          epochStart,
-          commitDeadline,
+          roundId: currentRound.roundId,
+          roundEndsAt: currentRound.endsAt,
           creditsPerSolve: tier,
-          marketCount: markets.length,
-          markets: markets.map((m) => ({
+          marketCount: currentRound.markets.length,
+          totalEpochMarkets: epochManager.getChallengeMarkets().length,
+          totalRounds: epochManager.getRounds().length,
+          markets: currentRound.markets.map((m) => ({
             marketId: m.marketId.toString("hex"),
             sourceMarketId: m.sourceMarketId,
             question: m.question,
+            endDate: m.endDate,
           })),
         };
       } catch (err) {

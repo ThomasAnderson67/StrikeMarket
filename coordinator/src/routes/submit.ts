@@ -2,11 +2,13 @@ import { FastifyInstance } from "fastify";
 import { PublicKey } from "@solana/web3.js";
 import { authHook, AuthService } from "../middleware/auth.js";
 import { SolanaService } from "../services/solana.js";
+import { EpochManager } from "../services/epoch.js";
 
 export function registerSubmitRoutes(
   app: FastifyInstance,
   authService: AuthService,
-  solana: SolanaService
+  solana: SolanaService,
+  epochManager: EpochManager
 ) {
   // POST /v1/submit-commit — Get unsigned commit transaction
   app.post<{
@@ -35,6 +37,13 @@ export function registerSubmitRoutes(
           return reply
             .status(400)
             .send({ error: "marketId and hash must be 32 bytes (64 hex chars)" });
+        }
+
+        // Validate that the market's round hasn't ended (anti-cheat)
+        if (!epochManager.isMarketCommittable(marketId)) {
+          return reply
+            .status(400)
+            .send({ error: "Market round has ended — cannot commit after resolution" });
         }
 
         const transaction = await solana.buildCommitTx(minerPubkey, marketIdBuf, hashBuf);
@@ -91,9 +100,13 @@ export function registerSubmitRoutes(
         );
 
         return { transaction };
-      } catch (err) {
+      } catch (err: any) {
         request.log.error(err);
-        return reply.status(500).send({ error: "Failed to build reveal transaction" });
+        const detail = err?.message || String(err);
+        return reply.status(500).send({
+          error: "Failed to build reveal transaction",
+          detail: detail.slice(0, 500),
+        });
       }
     }
   );

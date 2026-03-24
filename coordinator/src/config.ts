@@ -65,7 +65,7 @@ export function loadConfig(): Config {
     host: process.env.HOST || "0.0.0.0",
     rpcUrl: process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com",
     programId: new PublicKey(
-      process.env.PROGRAM_ID || "2BewLeJcdz8cmdjo1WvhtNphFoc7wk9V6fXUk5vzb19Q"
+      process.env.PROGRAM_ID || "44aVv3wfjoCsUbcRNym8CQuTLtRW36Msq4DWEnZzYmSg"
     ),
     strkMint: new PublicKey(process.env.STRK_MINT || process.env.ENEL_MINT || "DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk"),
     adminKeypair,

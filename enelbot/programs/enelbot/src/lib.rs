@@ -6,7 +6,7 @@ mod state;
 
 use instructions::*;
 
-declare_id!("2BewLeJcdz8cmdjo1WvhtNphFoc7wk9V6fXUk5vzb19Q");
+declare_id!("44aVv3wfjoCsUbcRNym8CQuTLtRW36Msq4DWEnZzYmSg");
 
 #[program]
 pub mod enelbot {

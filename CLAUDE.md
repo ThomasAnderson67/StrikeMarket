@@ -1,12 +1,12 @@
 # Strike
 
 ## What
-Proof-of-prediction mining protocol on Solana. AI agents earn $STRK by predicting outcomes on prediction markets. Commit-reveal scheme verified on-chain, epoch-based rewards distributed proportionally by accuracy × tier.
+Proof-of-prediction mining protocol on Solana. AI agents earn $STRK by predicting crypto price direction on 15-minute Polymarket rounds (7 tokens: BTC, ETH, SOL, XRP, DOGE, HYPE, BNB). Commit-reveal scheme verified on-chain, continuous mining within 24h epochs, rewards distributed proportionally by accuracy × tier.
 
 ## Stack
 - **Program:** Anchor (Rust), Solana, 11 instructions, 25 tests passing
 - **Coordinator:** TypeScript, Fastify, 12 API endpoints, 61 tests passing
-- **Prediction Markets:** Polymarket REST API (off-chain reads, no on-chain CPI)
+- **Prediction Markets:** Polymarket crypto 15-min "Up or Down" rounds, Chainlink resolution (off-chain reads, no on-chain CPI)
 - **Token:** $STRK, SPL token, 6 decimals, 100B fixed supply, Pump.fun launch
 - **Reference:** shadowvaults has existing Polymarket CLOB integration (see `references/shadowvaults/`)
 
@@ -29,9 +29,11 @@ Agent (miner skill)           Coordinator (Fastify)         Solana Program (Anch
 POST /auth/nonce         ──►  generate nonce
 sign ed25519 locally
 POST /auth/verify        ──►  verify sig → JWT
-GET /challenge           ──►  return markets ◄── Polymarket REST API
+GET /round               ──►  current 15-min round ◄── Polymarket REST API
+─── continuous loop (every 15 min) ───
 POST /submit-commit      ──►  unsigned TX    ──►  commit_prediction
 POST /submit-reveal      ──►  unsigned TX    ──►  reveal_prediction
+─── epoch end (24h) ───
                               closeEpoch()   ──►  score_miner (admin)
                               fundEpoch()    ──►  fund_epoch (admin)
 GET /claim-calldata      ──►  unsigned TX    ──►  claim_rewards
@@ -41,7 +43,7 @@ GET /claim-calldata      ──►  unsigned TX    ──►  claim_rewards
 
 ### Commit-Reveal Scheme
 - Hash: `SHA256(salt + miner_pubkey + epoch_id_le + market_id + prediction_byte)`
-- Prediction: `1` = NO, `2` = YES
+- Prediction: `1` = Down (NO), `2` = Up (YES)
 - Salt: 32 random bytes, miner-generated, required for reveal
 - On-chain verification in `reveal_prediction` instruction
 
@@ -55,17 +57,18 @@ GET /claim-calldata      ──►  unsigned TX    ──►  claim_rewards
 
 Token has 6 decimals. Base units: 1M STRK = `1_000_000_000_000`.
 
-### Epoch Timing
+### Epoch Timing (Continuous Mining)
 ```
-T=0h         T=22h          T=24h         T=26h
- │            │               │             │
- ├────────────┤               ├─────────────┤
- │  COMMIT    │   (gap)       │   REVEAL    │
- │  WINDOW    │               │   WINDOW    │
+T=0h                                                      T=24h
+ │                                                          │
+ ├──────────────────────────────────────────────────────────┤
+ │  COMMIT + REVEAL OPEN (overlapping, continuous)          │
+ │  round 1 ──► round 2 ──► ... ──► round 96               │
+ │  (15 min)    (15 min)            (15 min)                │
 ```
-- Commit: T=0 to T=22h
-- Gap: T=22h to T=24h (prevents last-second gaming)
-- Reveal: T=24h to T=26h
+- Epoch: 24 hours, commit and reveal windows open the entire time
+- Rounds: new round every 15 min (~96/day), 7 crypto markets each
+- Anti-cheat: coordinator rejects commits for rounds whose market has resolved
 - Unrevealed predictions = wrong (zero credits)
 
 ### Scoring
@@ -77,13 +80,15 @@ Voided/cancelled markets excluded from scoring entirely.
 Dust handling: last claimer gets remainder.
 Epoch funding: treasury wallet via `fund_epoch` admin instruction.
 
-### Prediction Markets: Polymarket (not Drift BET)
-**Decision:** Use Polymarket REST API for market discovery and outcome resolution.
-- Drift BET exists but markets are sparse and implemented as special `PerpMarketAccount` types
-- Polymarket has deeper liquidity, more markets, and a well-documented REST API
-- shadowvaults project has existing Polymarket CLOB integration as reference
-- Markets read off-chain via REST -- no on-chain CPI needed
-- Coordinator curates markets at epoch boundary, resolves outcomes after reveal window
+### Crypto 15-Min Markets
+**Decision:** Focus exclusively on crypto price prediction via Polymarket 15-minute "Up or Down" rounds.
+- 7 tokens: BTC, ETH, SOL, XRP, DOGE, HYPE, BNB
+- Polymarket hosts 15-min prediction markets resolved via Chainlink data streams
+- Outcomes: "Up" or "Down" (mapped to prediction bytes `2` and `1`)
+- New round every 15 minutes (~96 rounds/day)
+- Continuous mining within a 24h epoch -- both commit and reveal windows open the entire time
+- Anti-cheat: coordinator rejects commits for markets whose round has already resolved
+- Markets read off-chain via Polymarket REST API -- no on-chain CPI needed
 
 ### Trust Model
 - Coordinator-authorized scoring with on-chain guards
@@ -154,6 +159,7 @@ src/
 | POST | `/v1/auth/nonce` | No | Request signing nonce |
 | POST | `/v1/auth/verify` | No | Verify sig, get JWT |
 | GET | `/v1/challenge` | JWT | Challenge set (market list) |
+| GET | `/v1/round` | JWT | Current 15-min round markets |
 | POST | `/v1/submit-commit` | JWT | Unsigned commit TX |
 | POST | `/v1/submit-reveal` | JWT | Unsigned reveal TX |
 | POST | `/v1/submit-stake` | JWT | Unsigned stake TX |
@@ -164,18 +170,19 @@ src/
 | GET | `/v1/scheduler` | No | Scheduler phase & epoch timing |
 
 ## Devnet Addresses
-- **Program:** `2BewLeJcdz8cmdjo1WvhtNphFoc7wk9V6fXUk5vzb19Q`
+- **Program:** `44aVv3wfjoCsUbcRNym8CQuTLtRW36Msq4DWEnZzYmSg`
 - **$STRK Mint:** `DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk` (6 decimals, 100B supply)
 - **Treasury ATA:** `CAuWzHjPSChSkyqw3KNK6h3oxPSYDPJJtDWC8yvVYWK6`
 - **Admin/Upgrade Authority:** `ErW4zHrCrcZp5yFW1k4xS5VhTpnezHSvmkJAf1SAqrzy`
 
-## Build Status (as of 2026-03-19)
+## Build Status (as of 2026-03-24)
 - **Solana program:** COMPLETE -- 11 instructions, 25 tests, deployed to devnet
 - **$STRK token:** COMPLETE -- SPL mint on devnet, 100B minted
-- **Coordinator server:** COMPLETE -- 13 endpoints, 85 tests passing
+- **Coordinator server:** COMPLETE -- 14 endpoints (incl. /v1/round), 85 tests passing
 - **Miner skill file:** COMPLETE -- `enelbot-skill.md`
-- **Polymarket service:** COMPLETE -- Gamma/CLOB API, 16 tests passing
+- **Polymarket service:** COMPLETE -- Crypto 15-min markets, Chainlink resolution, 16 tests passing
 - **Epoch scheduler:** COMPLETE -- Auto lifecycle, 15 tests passing
+- **Crypto 15-min pivot:** COMPLETE -- 7 tokens (BTC/ETH/SOL/XRP/DOGE/HYPE/BNB), continuous mining, E2E verified
 - **E2E devnet test:** COMPLETE -- Full lifecycle verified (init->stake->commit->reveal->score->fund->claim->close)
 - **Coordinator deployment:** COMPLETE -- Dockerfile + Railway config
 - **Landing page:** COMPLETE -- strikemarket.io (Vercel)
@@ -196,7 +203,7 @@ docker build -t strike-coordinator coordinator/
 | `ADMIN_KEYPAIR_JSON` | JSON array of admin secret key bytes (from `~/.config/solana/id.json`) |
 | `SOLANA_RPC_URL` | Solana RPC (default: `https://api.devnet.solana.com`) |
 | `JWT_SECRET` | Random secret for JWT signing (**must change from default**) |
-| `PROGRAM_ID` | Program ID (default: `2BewLeJcdz8cmdjo1WvhtNphFoc7wk9V6fXUk5vzb19Q`) |
+| `PROGRAM_ID` | Program ID (default: `44aVv3wfjoCsUbcRNym8CQuTLtRW36Msq4DWEnZzYmSg`) |
 | `STRK_MINT` | Token mint (default: `DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk`). Also accepts `ENEL_MINT` for backward compat. |
 | `ADMIN_TOKEN_ACCOUNT` | Admin ATA (default: `CAuWzHjPSChSkyqw3KNK6h3oxPSYDPJJtDWC8yvVYWK6`) |
 | `EPOCH_REWARD_AMOUNT` | Reward per epoch in base units (default: `1000000000000` = 1M $STRK) |

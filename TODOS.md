@@ -28,12 +28,14 @@
 
 ## Build in V1 (from review)
 
-### 4. Nonce Replay Protection
+### 4. Nonce Replay Protection ✅ DONE
 **What:** Track used auth nonces in coordinator to prevent replay attacks.
 **Why:** Auth nonce replay is a real attack vector — without tracking, a signed nonce could be reused to obtain multiple auth tokens.
 **Implementation:** Store used nonces in a Set/DB with TTL matching token expiry. Check on `/v1/auth/verify` before issuing token.
+**Status:** Implemented in `coordinator/src/middleware/auth.ts`. Used nonces tracked in Map with TTL (jwtExpiry + 300s buffer), periodic cleanup every 60s, tested in `tests/auth.test.ts`.
 
-### 5. Zero-Market Epoch Handling
+### 5. Zero-Market Epoch Handling ✅ DONE
 **What:** Handle edge case where zero eligible Polymarket markets exist at epoch start.
 **Why:** Polymarket could have downtime or all markets could be illiquid. Without handling, coordinator returns empty challenge set and miners get confused.
 **Implementation:** If zero eligible markets at epoch start, coordinator skips the epoch (auto-advance) and returns a clear status message to miners via `/v1/challenge`.
+**Status:** Implemented. Scheduler auto-advances on-chain when zero markets found, re-scans for next epoch. Challenge endpoint returns `{ skipped: true }`. 7 tests added.

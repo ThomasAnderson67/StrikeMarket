@@ -7,3 +7,8 @@ target/
 .env
 .anchor/
 test-ledger/
+.context/
+.gstack/
+coordinator/miner-keypair.json
+coordinator/reveal-data-*.json
+references/

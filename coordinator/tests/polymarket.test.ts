@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createHash } from "crypto";
-import { PolymarketService } from "../src/services/polymarket.js";
+import { PolymarketService, CRYPTO_15M_SERIES } from "../src/services/polymarket.js";
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -327,6 +327,266 @@ describe("PolymarketService", () => {
 
       const outcomes = await service.resolveOutcomes([challengeMarket]);
       expect(outcomes[0].outcome).toBeNull();
+    });
+  });
+
+  describe("CRYPTO_15M_SERIES", () => {
+    it("has 7 series slugs", () => {
+      expect(CRYPTO_15M_SERIES.length).toBe(7);
+    });
+
+    it("contains expected tokens", () => {
+      expect(CRYPTO_15M_SERIES).toContain("btc-up-or-down-15m");
+      expect(CRYPTO_15M_SERIES).toContain("eth-up-or-down-15m");
+      expect(CRYPTO_15M_SERIES).toContain("sol-up-or-down-15m");
+    });
+  });
+
+  describe("scanCryptoRound", () => {
+    function makeEventResponse(token: string, overrides: Record<string, unknown> = {}) {
+      const endDate = new Date(Date.now() + 900_000).toISOString();
+      return [{
+        id: `event-${token}`,
+        title: `${token.toUpperCase()} Up or Down - 15m`,
+        ticker: `${token}-updown-15m-12345`,
+        active: true,
+        closed: false,
+        endDate,
+        markets: [
+          {
+            conditionId: `cond-${token}`,
+            outcomes: JSON.stringify(["Up", "Down"]),
+            outcomePrices: JSON.stringify(["0.5", "0.5"]),
+            closed: false,
+            active: true,
+            endDate,
+            question: `${token.toUpperCase()} Up or Down - 15m`,
+          },
+        ],
+        ...overrides,
+      }];
+    }
+
+    const TOKENS = ["btc", "eth", "sol", "xrp", "doge", "hype", "bnb"];
+
+    it("fetches markets from all 7 series", async () => {
+      // Each token makes 1 fetch call to /events?slug={token}-updown-15m-{ts}
+      for (const token of TOKENS) {
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(makeEventResponse(token)),
+        });
+      }
+
+      const markets = await service.scanCryptoRound();
+
+      expect(markets.length).toBe(7);
+      expect(markets[0].sourceMarketId).toBe("cond-btc");
+    });
+
+    it("skips series with no active events", async () => {
+      // First token has active event
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(makeEventResponse("btc")),
+      });
+
+      // Rest return empty (current round) then empty (next round fallback)
+      for (let i = 1; i < TOKENS.length; i++) {
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+
+      const markets = await service.scanCryptoRound();
+      expect(markets.length).toBe(1);
+    });
+
+    it("skips series with API errors", async () => {
+      // First succeeds
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(makeEventResponse("btc")),
+      });
+
+      // Rest fail
+      for (let i = 1; i < TOKENS.length; i++) {
+        mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+      }
+
+      const markets = await service.scanCryptoRound();
+      expect(markets.length).toBe(1);
+    });
+
+    it("returns empty array when all series fail", async () => {
+      for (const _token of TOKENS) {
+        mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+      }
+
+      const markets = await service.scanCryptoRound();
+      expect(markets).toEqual([]);
+    });
+
+    it("assigns deterministic 32-byte market IDs", async () => {
+      for (const token of TOKENS) {
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(makeEventResponse(token)),
+        });
+      }
+
+      const markets = await service.scanCryptoRound();
+
+      for (const m of markets) {
+        expect(m.marketId.length).toBe(32);
+        const expected = createHash("sha256").update(m.sourceMarketId).digest();
+        expect(m.marketId).toEqual(expected);
+      }
+    });
+
+    it("includes endDate on returned markets", async () => {
+      for (const slug of CRYPTO_15M_SERIES) {
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(makeSeriesResponse(slug)),
+        });
+      }
+
+      const markets = await service.scanCryptoRound();
+      for (const m of markets) {
+        expect(m.endDate).toBeDefined();
+        expect(m.endDate).toBeGreaterThan(Math.floor(Date.now() / 1000));
+      }
+    });
+
+    it("falls back to next round when current round not found", async () => {
+      const endDate = new Date(Date.now() + 900_000).toISOString();
+
+      // BTC: current round empty, next round found
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve([]), // current round not found
+      });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(makeEventResponse("btc")), // next round found
+      });
+
+      // Other series: current round empty, next round empty
+      for (let i = 1; i < TOKENS.length; i++) {
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+
+      const markets = await service.scanCryptoRound();
+      expect(markets.length).toBe(1);
+      expect(markets[0].sourceMarketId).toBe("cond-btc");
+    });
+  });
+
+  describe("resolveRound", () => {
+    it("resolves Up winner as outcome=true", async () => {
+      const market = {
+        marketId: createHash("sha256").update("cond-up").digest(),
+        sourceMarketId: "cond-up",
+        question: "BTC Up or Down?",
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve([
+          makeGammaMarket({
+            conditionId: "cond-up",
+            closed: true,
+            outcomes: JSON.stringify(["Up", "Down"]),
+            outcomePrices: JSON.stringify(["1", "0"]),
+          }),
+        ]),
+      });
+
+      const outcomes = await service.resolveRound([market]);
+      expect(outcomes.length).toBe(1);
+      expect(outcomes[0].outcome).toBe(true); // Up = YES = true
+    });
+
+    it("resolves Down winner as outcome=false", async () => {
+      const market = {
+        marketId: createHash("sha256").update("cond-down").digest(),
+        sourceMarketId: "cond-down",
+        question: "ETH Up or Down?",
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve([
+          makeGammaMarket({
+            conditionId: "cond-down",
+            closed: true,
+            outcomes: JSON.stringify(["Up", "Down"]),
+            outcomePrices: JSON.stringify(["0", "1"]),
+          }),
+        ]),
+      });
+
+      const outcomes = await service.resolveRound([market]);
+      expect(outcomes[0].outcome).toBe(false); // Down = NO = false
+    });
+
+    it("returns null for unresolved round markets", async () => {
+      const market = {
+        marketId: createHash("sha256").update("cond-open").digest(),
+        sourceMarketId: "cond-open",
+        question: "SOL Up or Down?",
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve([
+          makeGammaMarket({
+            conditionId: "cond-open",
+            closed: false,
+            outcomes: JSON.stringify(["Up", "Down"]),
+            outcomePrices: JSON.stringify(["0.6", "0.4"]),
+          }),
+        ]),
+      });
+
+      const outcomes = await service.resolveRound([market]);
+      expect(outcomes[0].outcome).toBeNull();
+    });
+
+    it("handles mixed Up/Down and Yes/No outcomes", async () => {
+      const market = {
+        marketId: createHash("sha256").update("cond-yesno").digest(),
+        sourceMarketId: "cond-yesno",
+        question: "Fallback Yes/No?",
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve([
+          makeGammaMarket({
+            conditionId: "cond-yesno",
+            closed: true,
+            outcomes: JSON.stringify(["Yes", "No"]),
+            outcomePrices: JSON.stringify(["1", "0"]),
+          }),
+        ]),
+      });
+
+      const outcomes = await service.resolveRound([market]);
+      expect(outcomes[0].outcome).toBe(true); // Yes won → true
     });
   });
 });

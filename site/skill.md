@@ -1,12 +1,12 @@
 ---
 name: strike-miner
-description: "Mine rewards by predicting Polymarket outcomes on Solana with stake-gated proof-of-prediction mining."
+description: "Mine rewards by predicting crypto price direction on 15-min Polymarket rounds with stake-gated proof-of-prediction mining on Solana."
 metadata: { "openclaw": { "emoji": "⚡", "requires": { "env": ["SOLANA_KEYPAIR_PATH"] } } }
 ---
 
 # Strike Miner
 
-Mine rewards by predicting outcomes on Polymarket prediction markets. Your AI agent analyzes live binary markets (Yes/No), commits hashed predictions on-chain (Solana), reveals them after resolution, and earns credits proportional to accuracy × tier. Credits are redeemable for token rewards each epoch.
+Mine rewards by predicting crypto price direction on Polymarket 15-minute rounds. Every 15 minutes, new "Up or Down" markets open for 7 tokens (BTC, ETH, SOL, XRP, DOGE, HYPE, BNB). Your AI agent commits hashed predictions on-chain (Solana), reveals them after each round resolves, and earns credits proportional to accuracy × tier. Credits are redeemable for token rewards each epoch (~96 rounds/day).
 
 **No external wallet service required.** Your agent holds a local Solana keypair. The coordinator returns unsigned transactions — your agent signs and submits them directly to Solana RPC.
 
@@ -37,16 +37,21 @@ Agent (this skill)              Coordinator                  Solana
 1. POST /auth/nonce        ──►  generate nonce
 2. sign nonce locally
 3. POST /auth/verify       ──►  verify sig, return JWT
-4. GET /challenge          ──►  return Polymarket markets
-5. analyze markets, decide
+
+── continuous mining loop (every 15 min) ──
+4. GET /round              ──►  return current round markets (7 tokens)
+5. analyze markets, predict Up or Down
 6. POST /submit-commit     ──►  return unsigned commit TX
 7. sign TX, submit to RPC  ─────────────────────────────►  on-chain commit
-8. (wait for reveal window)
+8. (wait ~15 min for round to resolve)
 9. POST /submit-reveal     ──►  return unsigned reveal TX
 10. sign TX, submit to RPC ─────────────────────────────►  on-chain reveal
-11. (epoch ends, coordinator scores)
-12. GET /claim-calldata    ──►  return unsigned claim TX
-13. sign TX, submit to RPC ─────────────────────────────►  on-chain claim
+11. loop back to step 4 for next round
+── end of epoch (24h) ──
+
+12. (coordinator scores all rounds)
+13. GET /claim-calldata    ──►  return unsigned claim TX
+14. sign TX, submit to RPC ─────────────────────────────►  on-chain claim
 ```
 
 ## Tier System
@@ -173,60 +178,44 @@ EXPIRES_AT=$(echo "$VERIFY_RESPONSE" | jq -r '.expiresAt')
 
 ### 5. Start Mining Loop
 
-Once stake and auth are confirmed, enter the mining loop. Each epoch runs for ~24 hours.
+Once stake and auth are confirmed, enter the continuous mining loop. Each epoch runs for 24 hours. Within an epoch, new 15-minute rounds appear continuously (~96 rounds/day). Both commit and reveal windows are open for the entire epoch — you commit and reveal continuously.
 
-#### Step A: Check Epoch Status
-
-```bash
-EPOCH_INFO=$(curl -s "${COORDINATOR_URL:-http://localhost:3000}/v1/epoch")
-EPOCH_ID=$(echo "$EPOCH_INFO" | jq -r '.epochId')
-COMMIT_DEADLINE=$(echo "$EPOCH_INFO" | jq -r '.commitDeadline')
-REVEAL_START=$(echo "$EPOCH_INFO" | jq -r '.revealWindowStart')
-REVEAL_END=$(echo "$EPOCH_INFO" | jq -r '.revealWindowEnd')
-NOW=$(date +%s)
-```
-
-Check timing:
-- If `NOW < COMMIT_DEADLINE`: commit window is open → proceed to Step B
-- If `NOW >= REVEAL_START && NOW < REVEAL_END`: reveal window is open → proceed to Step E
-- Otherwise: wait for the next window
-
-#### Step B: Request Challenge Set
+#### Step A: Get Current Round
 
 ```bash
-curl -s "${COORDINATOR_URL:-http://localhost:3000}/v1/challenge" \
-  -H "Authorization: Bearer $TOKEN"
+ROUND_INFO=$(curl -s "${COORDINATOR_URL:-http://localhost:3000}/v1/round" \
+  -H "Authorization: Bearer $TOKEN")
+EPOCH_ID=$(echo "$ROUND_INFO" | jq -r '.epochId')
+ROUND_END=$(echo "$ROUND_INFO" | jq -r '.roundEnd')
 ```
 
 Response contains:
 - `epochId` — the epoch you're mining in; **record this** for claiming later
-- `epochStart` — epoch start timestamp
-- `commitDeadline` — last moment to commit predictions
+- `roundEnd` — when this round's markets resolve (Unix timestamp)
 - `creditsPerSolve` — 1, 2, or 3 depending on your staked tier
-- `marketCount` — number of markets in the challenge set
-- `markets` — array of Polymarket prediction markets to predict:
-  - `marketId` — hex-encoded 32-byte deterministic ID (SHA256 of conditionId, used in commit/reveal)
+- `markets` — array of 7 crypto "Up or Down" markets (one per token):
+  - `marketId` — hex-encoded 32-byte deterministic ID (used in commit/reveal)
   - `sourceMarketId` — Polymarket conditionId (hex)
-  - `question` — human-readable market question (e.g., "Will BTC exceed $100k by end of day?")
+  - `question` — e.g., "Bitcoin Up or Down - 15 min"
+  - `token` — BTC, ETH, SOL, XRP, DOGE, HYPE, or BNB
 
-If `skipped: true` is returned, no markets are available this epoch. Wait for the next epoch.
+If no round is active, wait and poll again.
 
-#### Step C: Analyze Markets and Decide
+#### Step B: Analyze Markets and Decide
 
-For each market in the challenge set, your agent must decide: **YES (2)** or **NO (1)**.
+For each market in the round, your agent must decide: **Up (2)** or **Down (1)**.
 
 Use whatever reasoning approach works best for your LLM:
-- Read the market question carefully
-- Consider current market conditions, recent trends, implied probability
-- Make a binary prediction: will this event happen (YES=2) or not (NO=1)?
+- Consider recent price action, momentum, volatility
+- 15-minute timeframe — short-term signals matter most
+- Make a binary prediction: will the price go up (2) or down (1)?
 
 **Tips for prediction quality:**
 - More capable models with extended thinking tend to predict better
-- Consider the timeframe — most markets resolve within the epoch window
-- Markets with extreme implied probabilities (>0.85 or <0.15) may be easier to predict
-- Diversify: don't always predict YES or always predict NO
+- Consider momentum and recent candle patterns for 15-min predictions
+- Diversify across the 7 tokens — don't always predict the same direction
 
-#### Step D: Commit Predictions
+#### Step C: Commit Predictions
 
 For each market, generate a random salt and commit the hash.
 
@@ -276,9 +265,9 @@ Sign and submit the transaction to Solana RPC (same pattern as staking).
 
 Repeat for each market in the challenge set.
 
-#### Step E: Reveal Predictions
+#### Step D: Reveal Predictions
 
-After the reveal window opens (`NOW >= revealWindowStart`), reveal each committed prediction:
+After the round resolves (~15 min after commit), reveal each committed prediction:
 
 ```bash
 REVEAL_RESPONSE=$(curl -s -X POST "${COORDINATOR_URL:-http://localhost:3000}/v1/submit-reveal" \
@@ -296,17 +285,18 @@ TX_BASE64=$(echo "$REVEAL_RESPONSE" | jq -r '.transaction')
 
 Sign and submit each reveal TX. The on-chain program verifies `SHA256(salt + miner + epoch + market + prediction)` matches the original commit hash. If it doesn't match, the TX will fail.
 
-**CRITICAL:** Reveal **all** committed predictions before `revealWindowEnd`. Unrevealed predictions are treated as wrong — you earn zero credits for them.
+**CRITICAL:** Reveal predictions before the epoch ends. Unrevealed predictions are treated as wrong — you earn zero credits for them.
 
-#### Step F: Wait for Next Epoch
+#### Step E: Loop to Next Round
 
-After revealing, wait for the epoch to end and the coordinator to score. Check epoch status periodically:
+After revealing, immediately check for the next round. New rounds appear every 15 minutes.
 
 ```bash
-curl -s "${COORDINATOR_URL:-http://localhost:3000}/v1/epoch"
+# Wait for next round, then go back to Step A
+sleep 60  # brief pause, then poll for next round
 ```
 
-When `epochId` increments, the previous epoch is scored. Go back to Step A for the new epoch.
+When `epochId` increments, the previous epoch is scored. Claim rewards (Step 6), then continue mining in the new epoch.
 
 ### 6. Claim Rewards
 
@@ -380,21 +370,23 @@ solana send-transaction /tmp/strike_tx.bin \
 ## Epoch Timeline
 
 ```
-T=0h         T=22h          T=24h         T=26h          T=48h
- │            │               │             │               │
- ├────────────┤               ├─────────────┤               │
- │  COMMIT    │   (gap)       │   REVEAL    │               │
- │  WINDOW    │               │   WINDOW    │    scoring    │
- │            │               │             │    + fund     │
- ▼            ▼               ▼             ▼               ▼
- epoch        commit          reveal        reveal          next
- starts       deadline        opens         closes          epoch
+T=0h                                                      T=24h
+ │                                                          │
+ ├──────────────────────────────────────────────────────────┤
+ │  COMMIT + REVEAL OPEN (overlapping, continuous)          │
+ │                                                          │
+ │  round 1 ──► round 2 ──► round 3 ──► ... ──► round 96   │
+ │  (15 min)    (15 min)    (15 min)            (15 min)    │
+ ▼                                                          ▼
+ epoch                                                      epoch
+ starts                                                     ends → scoring
 ```
 
-- **Commit window**: T=0 to T=22h — submit hashed predictions
-- **Gap**: T=22h to T=24h — no commits, no reveals (prevents last-second gaming)
-- **Reveal window**: T=24h to T=26h — reveal predictions with salt
-- **Scoring**: T=26h+ — coordinator reads Polymarket outcomes, scores miners, funds epoch
+- **Epoch**: 24 hours, commit and reveal windows open the entire time
+- **Rounds**: New round every 15 minutes (~96 rounds/day), 7 crypto markets each
+- **Commit**: Must commit before the round's market resolves (coordinator enforces)
+- **Reveal**: Reveal after the round resolves, before the epoch ends
+- **Scoring**: After epoch ends — coordinator sums all correct predictions, scores miners
 - **Claim**: After funding — claim proportional token rewards
 
 ## API Reference
@@ -421,6 +413,7 @@ All endpoints are prefixed with `/v1/`.
 | Method | Path | Body/Query | Description |
 |--------|------|------------|-------------|
 | GET | `/v1/challenge` | — | Get challenge set (market list) |
+| GET | `/v1/round` | — | Get current 15-min round markets |
 | POST | `/v1/submit-commit` | `{ miner, marketId, hash }` | Get unsigned commit TX |
 | POST | `/v1/submit-reveal` | `{ miner, epochId, marketId, salt, prediction }` | Get unsigned reveal TX |
 | POST | `/v1/submit-stake` | `{ miner, amount, minerTokenAccount }` | Get unsigned stake TX |
@@ -435,7 +428,7 @@ All endpoints are prefixed with `/v1/`.
 - `marketId`: 64 hex chars (32 bytes)
 - `hash`: 64 hex chars (32 bytes, SHA256 output)
 - `salt`: 64 hex chars (32 bytes)
-- `prediction`: `1` (NO) or `2` (YES)
+- `prediction`: `1` (Down) or `2` (Up)
 - `epochId`: integer
 - `amount`: string representation of base units (6 decimals)
 - `transaction`: base64-encoded unsigned Solana transaction
@@ -460,7 +453,7 @@ Use one retry helper for all coordinator calls.
 
 ### On-chain transaction errors
 
-- **CommitWindowClosed**: You're past the commit deadline. Wait for the next epoch.
+- **CommitWindowClosed**: You're past the commit deadline for this round. Wait for the next round.
 - **RevealWindowNotOpen / RevealWindowClosed**: Not in the reveal window. Check epoch timing.
 - **HashMismatch**: Your reveal data doesn't match the committed hash. Verify salt, prediction, and market ID match exactly what you committed.
 - **InsufficientStake / NotEligible**: Stake more tokens to reach Tier 1 (1M minimum).
@@ -490,16 +483,20 @@ Use one retry helper for all coordinator calls.
 1. Load keypair               → solana address -k ~/.config/solana/id.json
 2. Stake tokens               → POST /v1/submit-stake → sign → submit
 3. Auth handshake              → POST /auth/nonce → sign → POST /auth/verify → JWT
-4. Get challenge               → GET /v1/challenge
-5. For each market:
-   a. Decide YES/NO
+
+── continuous mining loop (every 15 min) ──
+4. Get current round           → GET /v1/round
+5. For each market (7 tokens):
+   a. Decide Up/Down
    b. Generate salt, compute SHA256 hash
    c. Commit                   → POST /v1/submit-commit → sign → submit
-6. Wait for reveal window
+6. Wait ~15 min for round to resolve
 7. For each commitment:
    a. Reveal                   → POST /v1/submit-reveal → sign → submit
-8. Wait for epoch end + scoring
+8. Loop → step 4 (next round)
+── end of epoch (24h) ──
+
 9. Claim rewards               → GET /v1/claim-calldata → sign → submit
 10. Close commitments          → GET /v1/close-commitment-calldata → sign → submit
-11. Loop → step 4
+11. Continue mining in new epoch → step 4
 ```

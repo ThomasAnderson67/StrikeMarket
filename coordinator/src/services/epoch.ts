@@ -27,14 +27,30 @@ export interface EpochDetail {
   scoredAt: number;        // unix timestamp
 }
 
+// ── Round tracking (crypto 15-min continuous mining) ──────────────────
+
+export interface Round {
+  /** Sequential round ID within the epoch */
+  roundId: number;
+  /** When the round was started (unix timestamp) */
+  startedAt: number;
+  /** When the round's markets end (unix timestamp) */
+  endsAt: number;
+  /** Markets in this round */
+  markets: ChallengeMarket[];
+  /** Whether all markets in this round have been resolved */
+  resolved: boolean;
+  /** Resolved outcomes for this round's markets */
+  outcomes: MarketOutcome[];
+}
+
 // ── Epoch lifecycle manager ────────────────────────────────────────────
 //
-// Epoch timeline:
-//   T=0h  ──── epoch starts, scan Polymarket, build challenge set
-//   T=22h ──── commit window closes
-//   T=24h ──── epoch ends, advance epoch, reveal window opens
-//   T=26h ──── reveal window closes, score miners
-//   T=26h+ ─── fund epoch, miners can claim
+// Continuous mining model:
+//   Epoch = 24h. Within an epoch, new 15-min rounds appear every 15 minutes.
+//   Both commit and reveal windows are open for the entire epoch.
+//   Miners commit predictions per-round as markets appear, reveal after resolution.
+//   At epoch end: resolve ALL rounds, sum correct predictions → credits → rewards.
 //
 // Zero-market handling: if zero eligible Polymarket markets exist
 // at epoch start, auto-skip the epoch.
@@ -68,14 +84,20 @@ export class EpochManager {
   private polymarket: PolymarketService;
   private config: Config;
 
-  /** Current epoch's challenge markets (cached at epoch start) */
+  /** Current epoch's challenge markets (cumulative across all rounds) */
   private challengeMarkets: ChallengeMarket[] = [];
 
-  /** Resolved outcomes (cached after reveal window) */
+  /** Resolved outcomes (cached after epoch close) */
   private outcomes: MarketOutcome[] = [];
 
   /** Epoch detail store for landing page API */
   private epochStore = new Map<number, EpochDetail>();
+
+  /** All rounds within the current epoch */
+  private rounds: Round[] = [];
+
+  /** Current round counter within the epoch */
+  private currentRound = 0;
 
   constructor(config: Config, solana: SolanaService, polymarket: PolymarketService) {
     this.config = config;
@@ -91,6 +113,132 @@ export class EpochManager {
     return this.outcomes;
   }
 
+  getRounds(): Round[] {
+    return this.rounds;
+  }
+
+  getCurrentRound(): Round | null {
+    return this.rounds.length > 0 ? this.rounds[this.rounds.length - 1] : null;
+  }
+
+  getCurrentRoundId(): number {
+    return this.currentRound;
+  }
+
+  /**
+   * Get which round a market belongs to, by its hex-encoded marketId.
+   */
+  getRoundForMarket(marketIdHex: string): Round | null {
+    for (const round of this.rounds) {
+      if (round.markets.some((m) => m.marketId.toString("hex") === marketIdHex)) {
+        return round;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Check if a market is still committable (its round hasn't ended).
+   * Uses the individual market's endDate if available, falling back to round endsAt.
+   */
+  isMarketCommittable(marketIdHex: string): boolean {
+    const round = this.getRoundForMarket(marketIdHex);
+    if (!round) return false; // unknown market
+
+    // Find the specific market's endDate
+    const market = round.markets.find(
+      (m) => m.marketId.toString("hex") === marketIdHex
+    );
+    const now = Math.floor(Date.now() / 1000);
+
+    // Prefer market-level endDate if available
+    if (market?.endDate) {
+      return now < market.endDate;
+    }
+
+    return now < round.endsAt;
+  }
+
+  /**
+   * Start a new 15-min round within the epoch.
+   * Calls polymarket.scanCryptoRound(), creates a Round, and appends
+   * the new markets to the cumulative challengeMarkets list.
+   */
+  async startRound(): Promise<Round | null> {
+    const roundMarkets = await this.polymarket.scanCryptoRound();
+
+    if (roundMarkets.length === 0) {
+      console.log("[epoch] No crypto 15-min markets available for new round");
+      return null;
+    }
+
+    // Deduplicate: don't add markets already in a previous round
+    const existingIds = new Set(
+      this.challengeMarkets.map((m) => m.sourceMarketId)
+    );
+    const newMarkets = roundMarkets.filter(
+      (m) => !existingIds.has(m.sourceMarketId)
+    );
+
+    if (newMarkets.length === 0) {
+      console.log("[epoch] All scanned markets already tracked — no new round");
+      return null;
+    }
+
+    this.currentRound++;
+
+    // Determine round end time from the markets' endDate
+    const endsAt = Math.max(
+      ...newMarkets.map((m) => m.endDate || 0),
+      Math.floor(Date.now() / 1000) + 900 // fallback: 15 min from now
+    );
+
+    const round: Round = {
+      roundId: this.currentRound,
+      startedAt: Math.floor(Date.now() / 1000),
+      endsAt,
+      markets: newMarkets,
+      resolved: false,
+      outcomes: [],
+    };
+
+    this.rounds.push(round);
+    this.challengeMarkets.push(...newMarkets);
+
+    console.log(
+      `[epoch] Round ${round.roundId} started: ${newMarkets.length} new markets, ` +
+      `ends at ${new Date(endsAt * 1000).toISOString()}, ` +
+      `total markets: ${this.challengeMarkets.length}`
+    );
+
+    return round;
+  }
+
+  /**
+   * Try to resolve a specific round's markets.
+   * Returns true if all markets in the round are now resolved.
+   */
+  async resolveRound(roundId: number): Promise<boolean> {
+    const round = this.rounds.find((r) => r.roundId === roundId);
+    if (!round || round.resolved) return round?.resolved ?? false;
+
+    const outcomes = await this.polymarket.resolveRound(round.markets);
+    const allResolved = outcomes.every((o) => o.outcome !== null);
+
+    if (allResolved) {
+      round.resolved = true;
+      round.outcomes = outcomes;
+      console.log(`[epoch] Round ${roundId} fully resolved`);
+    } else {
+      // Partially resolved — store what we have
+      round.outcomes = outcomes;
+      const resolvedCount = outcomes.filter((o) => o.outcome !== null).length;
+      console.log(`[epoch] Round ${roundId} partially resolved: ${resolvedCount}/${outcomes.length}`);
+    }
+
+    return allResolved;
+  }
+
   getEpochDetail(epochId: number): EpochDetail | undefined {
     return this.epochStore.get(epochId);
   }
@@ -100,23 +248,27 @@ export class EpochManager {
   }
 
   /**
-   * Called at epoch start. Scans Drift markets and builds the challenge set.
-   * If zero markets found, returns empty (coordinator should auto-skip).
+   * Called at epoch start. Resets round state and starts the first round.
+   * Uses crypto 15-min round scanning.
+   * If zero markets found in the first round, returns skipped=true.
    */
   async startEpoch(): Promise<{ marketCount: number; skipped: boolean }> {
-    const polymarketMarkets = await this.polymarket.scanMarkets();
+    // Reset all round state for the new epoch
+    this.challengeMarkets = [];
+    this.outcomes = [];
+    this.rounds = [];
+    this.currentRound = 0;
 
-    if (polymarketMarkets.length === 0) {
-      console.log("[epoch] No eligible Polymarket markets. Epoch will be skipped.");
-      this.challengeMarkets = [];
+    // Start the first round
+    const round = await this.startRound();
+
+    if (!round) {
+      console.log("[epoch] No eligible crypto 15-min markets. Epoch will be skipped.");
       return { marketCount: 0, skipped: true };
     }
 
-    this.challengeMarkets = this.polymarket.buildChallengeSet(polymarketMarkets);
-    this.outcomes = [];
-
     console.log(
-      `[epoch] Challenge set built: ${this.challengeMarkets.length} markets`
+      `[epoch] Epoch started with round 1: ${round.markets.length} markets`
     );
     return { marketCount: this.challengeMarkets.length, skipped: false };
   }
@@ -130,9 +282,31 @@ export class EpochManager {
     scores: MinerScore[];
     fundTxSig: string;
   }> {
-    // 1. Resolve Polymarket outcomes
-    this.outcomes = await this.polymarket.resolveOutcomes(this.challengeMarkets);
-    console.log(`[epoch] Resolved ${this.outcomes.length} market outcomes`);
+    // 1. Resolve all rounds' markets
+    // Try to resolve any unresolved rounds first
+    for (const round of this.rounds) {
+      if (!round.resolved) {
+        await this.resolveRound(round.roundId);
+      }
+    }
+
+    // Collect all outcomes from resolved rounds
+    this.outcomes = [];
+    for (const round of this.rounds) {
+      this.outcomes.push(...round.outcomes);
+    }
+
+    // For any markets not covered by round resolution, try direct resolution
+    const resolvedIds = new Set(this.outcomes.map((o) => o.sourceMarketId));
+    const unresolvedMarkets = this.challengeMarkets.filter(
+      (m) => !resolvedIds.has(m.sourceMarketId)
+    );
+    if (unresolvedMarkets.length > 0) {
+      const extraOutcomes = await this.polymarket.resolveRound(unresolvedMarkets);
+      this.outcomes.push(...extraOutcomes);
+    }
+
+    console.log(`[epoch] Resolved ${this.outcomes.length} market outcomes across ${this.rounds.length} rounds`);
 
     // 2. Read all revealed commitments from chain
     const predictions = await this.readRevealedPredictions(epochId);

@@ -81,7 +81,7 @@ async function main() {
   // Register route modules
   registerAuthRoutes(app, authService);
   registerChallengeRoutes(app, authService, epochManager, solana);
-  registerSubmitRoutes(app, authService, solana);
+  registerSubmitRoutes(app, authService, solana, epochManager);
   registerEpochRoutes(app, solana);
   registerClaimRoutes(app, authService, solana);
 
@@ -104,6 +104,32 @@ async function main() {
 
   // Initialize epoch scheduler
   const scheduler = new EpochScheduler(config, solana, epochManager);
+
+  // Current round info
+  app.get("/v1/round", async () => {
+    const currentRound = epochManager.getCurrentRound();
+    const schedulerStatus = scheduler.getStatus();
+
+    if (!currentRound) {
+      return {
+        active: false,
+        message: "No active round. Waiting for next 15-min round.",
+        epochId: schedulerStatus.epochId,
+        totalRounds: epochManager.getRounds().length,
+      };
+    }
+
+    return {
+      active: true,
+      roundId: currentRound.roundId,
+      roundStartedAt: currentRound.startedAt,
+      roundEndsAt: currentRound.endsAt,
+      marketsCount: currentRound.markets.length,
+      resolved: currentRound.resolved,
+      epochId: schedulerStatus.epochId,
+      totalRounds: epochManager.getRounds().length,
+    };
+  });
 
   // Expose scheduler status
   app.get("/v1/scheduler", async () => scheduler.getStatus());

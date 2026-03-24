@@ -35,6 +35,11 @@ function makeMockEpochManager() {
     advanceEpoch: vi.fn().mockResolvedValue("adv-sig"),
     getChallengeMarkets: vi.fn().mockReturnValue([{ marketId: Buffer.alloc(32) }]),
     getOutcomes: vi.fn().mockReturnValue([]),
+    getCurrentRound: vi.fn().mockReturnValue(null),
+    getRounds: vi.fn().mockReturnValue([]),
+    getCurrentRoundId: vi.fn().mockReturnValue(0),
+    startRound: vi.fn().mockResolvedValue(null),
+    resolveRound: vi.fn().mockResolvedValue(false),
   };
 }
 
@@ -140,17 +145,110 @@ describe("EpochScheduler", () => {
       expect(epochManager.startEpoch).not.toHaveBeenCalled();
     });
 
-    it("handles skipped epoch (no markets)", async () => {
+    it("handles skipped epoch (no markets) — calls advanceEpoch with 0", async () => {
       const now = Math.floor(Date.now() / 1000);
       solana = makeMockSolana({ epochStart: now - 3600 });
       epochManager = makeMockEpochManager();
+      // First call: no markets (triggers auto-skip), second call: next epoch has markets
+      epochManager.startEpoch
+        .mockResolvedValueOnce({ marketCount: 0, skipped: true })
+        .mockResolvedValueOnce({ marketCount: 5, skipped: false });
+      scheduler = new EpochScheduler(makeMockConfig(), solana as any, epochManager as any);
+
+      await scheduler.start();
+
+      // Should advance with 0 markets
+      expect(epochManager.advanceEpoch).toHaveBeenCalledWith(0);
+      // Should scan again for the next epoch
+      expect(epochManager.startEpoch).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("zero-market epoch handling", () => {
+    it("auto-skips epoch and advances on-chain when zero markets found", async () => {
+      const now = Math.floor(Date.now() / 1000);
+      solana = makeMockSolana({ epochStart: now - 3600 });
+      epochManager = makeMockEpochManager();
+      epochManager.startEpoch
+        .mockResolvedValueOnce({ marketCount: 0, skipped: true })
+        .mockResolvedValueOnce({ marketCount: 8, skipped: false });
+      scheduler = new EpochScheduler(makeMockConfig(), solana as any, epochManager as any);
+
+      await scheduler.start();
+
+      expect(epochManager.advanceEpoch).toHaveBeenCalledWith(0);
+      expect(epochManager.startEpoch).toHaveBeenCalledTimes(2);
+      // skippedEpoch should be false since the next epoch has markets
+      expect(scheduler.getStatus().skippedEpoch).toBe(false);
+    });
+
+    it("marks skippedEpoch=true if consecutive epochs have no markets", async () => {
+      const now = Math.floor(Date.now() / 1000);
+      solana = makeMockSolana({ epochStart: now - 3600 });
+      epochManager = makeMockEpochManager();
+      // Both epochs have no markets
       epochManager.startEpoch.mockResolvedValue({ marketCount: 0, skipped: true });
       scheduler = new EpochScheduler(makeMockConfig(), solana as any, epochManager as any);
 
       await scheduler.start();
 
-      expect(epochManager.startEpoch).toHaveBeenCalledOnce();
+      // Should only advance once (no infinite recursion)
+      expect(epochManager.advanceEpoch).toHaveBeenCalledTimes(1);
+      expect(scheduler.getStatus().skippedEpoch).toBe(true);
+    });
+
+    it("does not call closeEpoch for skipped epochs", async () => {
+      const now = Math.floor(Date.now() / 1000);
+      solana = makeMockSolana({ epochStart: now - 3600 });
+      epochManager = makeMockEpochManager();
+      epochManager.startEpoch
+        .mockResolvedValueOnce({ marketCount: 0, skipped: true })
+        .mockResolvedValueOnce({ marketCount: 3, skipped: false });
+      scheduler = new EpochScheduler(makeMockConfig(), solana as any, epochManager as any);
+
+      await scheduler.start();
+
+      expect(epochManager.closeEpoch).not.toHaveBeenCalled();
+    });
+
+    it("handles auto-skip failure gracefully", async () => {
+      const now = Math.floor(Date.now() / 1000);
+      solana = makeMockSolana({ epochStart: now - 3600 });
+      epochManager = makeMockEpochManager();
+      epochManager.startEpoch.mockResolvedValue({ marketCount: 0, skipped: true });
+      epochManager.advanceEpoch.mockRejectedValueOnce(new Error("RPC error"));
+      scheduler = new EpochScheduler(makeMockConfig(), solana as any, epochManager as any);
+
       // Should not throw
+      await scheduler.start();
+
+      // Should stay marked as skipped
+      expect(scheduler.getStatus().skippedEpoch).toBe(true);
+    });
+
+    it("resets skippedEpoch on resync", async () => {
+      const now = Math.floor(Date.now() / 1000);
+      solana = makeMockSolana({ epochStart: now - 3600 });
+      epochManager = makeMockEpochManager();
+      epochManager.startEpoch.mockResolvedValue({ marketCount: 0, skipped: true });
+      epochManager.advanceEpoch.mockRejectedValue(new Error("RPC error"));
+      scheduler = new EpochScheduler(makeMockConfig(), solana as any, epochManager as any);
+
+      await scheduler.start();
+      expect(scheduler.getStatus().skippedEpoch).toBe(true);
+
+      await scheduler.resync();
+      expect(scheduler.getStatus().skippedEpoch).toBe(false);
+    });
+
+    it("status includes skippedEpoch field", () => {
+      solana = makeMockSolana();
+      epochManager = makeMockEpochManager();
+      scheduler = new EpochScheduler(makeMockConfig(), solana as any, epochManager as any);
+
+      const status = scheduler.getStatus();
+      expect(status).toHaveProperty("skippedEpoch");
+      expect(status.skippedEpoch).toBe(false);
     });
   });
 
@@ -244,6 +342,33 @@ describe("EpochScheduler", () => {
       // Should not throw
       await scheduler.start();
       expect(scheduler.getStatus().phase).toBe("commit");
+    });
+  });
+
+  describe("round info in status", () => {
+    it("includes currentRoundId and totalRounds in status", async () => {
+      const now = Math.floor(Date.now() / 1000);
+      solana = makeMockSolana({ epochStart: now - 3600 });
+      epochManager = makeMockEpochManager();
+      epochManager.getCurrentRound.mockReturnValue({ roundId: 3 });
+      epochManager.getRounds.mockReturnValue([{}, {}, {}]);
+      scheduler = new EpochScheduler(makeMockConfig(), solana as any, epochManager as any);
+
+      await scheduler.start();
+
+      const status = scheduler.getStatus();
+      expect(status.currentRoundId).toBe(3);
+      expect(status.totalRounds).toBe(3);
+    });
+
+    it("returns 0 for currentRoundId when no rounds", () => {
+      solana = makeMockSolana();
+      epochManager = makeMockEpochManager();
+      scheduler = new EpochScheduler(makeMockConfig(), solana as any, epochManager as any);
+
+      const status = scheduler.getStatus();
+      expect(status.currentRoundId).toBe(0);
+      expect(status.totalRounds).toBe(0);
     });
   });
 });

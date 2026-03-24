@@ -1,6 +1,7 @@
 import { Connection, PublicKey, Transaction, SystemProgram } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import * as anchor from "@coral-xyz/anchor";
+import BN from "bn.js";
 import { Config } from "../config.js";
 import * as pda from "../pda.js";
 import idl from "../enelbot.json" with { type: "json" };
@@ -176,7 +177,7 @@ export class SolanaService {
 
     const ix = await this.program.methods
       .revealPrediction(
-        new anchor.BN(epochId),
+        new BN(epochId),
         Array.from(marketId),
         Array.from(salt),
         prediction
@@ -198,7 +199,7 @@ export class SolanaService {
     const [vaultPda] = pda.findVault(this.config.programId);
 
     const ix = await this.program.methods
-      .stake(new anchor.BN(amount.toString()))
+      .stake(new BN(amount.toString()))
       .accounts({
         globalState: globalStatePda,
         minerState: minerStatePda,
@@ -254,7 +255,7 @@ export class SolanaService {
     const [vaultPda] = pda.findVault(this.config.programId);
 
     const ix = await this.program.methods
-      .claimRewards(new anchor.BN(epochId))
+      .claimRewards(new BN(epochId))
       .accounts({
         globalState: globalStatePda,
         epochState: epochStatePda,
@@ -278,7 +279,7 @@ export class SolanaService {
     const [minerEpochRecordPda] = pda.findMinerEpochRecord(epochId, miner, this.config.programId);
 
     const ix = await this.program.methods
-      .closeCommitment(new anchor.BN(epochId), Array.from(marketId))
+      .closeCommitment(new BN(epochId), Array.from(marketId))
       .accounts({
         commitment: commitmentPda,
         minerEpochRecord: minerEpochRecordPda,
@@ -320,7 +321,7 @@ export class SolanaService {
     const [minerEpochRecordPda] = pda.findMinerEpochRecord(epochId, miner, this.config.programId);
 
     const txSig = await this.program.methods
-      .scoreMiner(new anchor.BN(epochId), new anchor.BN(credits))
+      .scoreMiner(new BN(epochId), new BN(credits))
       .accounts({
         globalState: globalStatePda,
         epochState: epochStatePda,
@@ -341,7 +342,7 @@ export class SolanaService {
     const [vaultPda] = pda.findVault(this.config.programId);
 
     const txSig = await this.program.methods
-      .fundEpoch(new anchor.BN(epochId), new anchor.BN(amount.toString()))
+      .fundEpoch(new BN(epochId), new BN(amount.toString()))
       .accounts({
         globalState: globalStatePda,
         epochState: epochStatePda,
@@ -362,9 +363,21 @@ export class SolanaService {
     instructions: anchor.web3.TransactionInstruction[],
     feePayer: PublicKey
   ): Promise<string> {
-    const { blockhash } = await this.connection.getLatestBlockhash("confirmed");
+    // Retry getLatestBlockhash — devnet RPC can be flaky
+    let blockhash: string;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const result = await this.connection.getLatestBlockhash("confirmed");
+        blockhash = result.blockhash;
+        break;
+      } catch (err) {
+        if (attempt === 2) throw err;
+        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+      }
+    }
+
     const tx = new Transaction({
-      recentBlockhash: blockhash,
+      recentBlockhash: blockhash!,
       feePayer,
     });
     tx.add(...instructions);
