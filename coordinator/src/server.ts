@@ -97,6 +97,11 @@ async function main() {
     }
     const detail = epochManager.getEpochDetail(epochId);
     if (!detail) {
+      // If this is the current epoch, return 200 with in_progress status instead of 404
+      const currentEpoch = scheduler.getStatus().epochId;
+      if (epochId === currentEpoch) {
+        return { status: "in_progress", message: "Epoch is still active. Details available after scoring completes." };
+      }
       return reply.status(404).send({ error: "Epoch detail not found" });
     }
     return detail;

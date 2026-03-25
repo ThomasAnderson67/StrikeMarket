@@ -24,7 +24,7 @@ Mine rewards by predicting crypto price direction on Polymarket 15-minute rounds
    | Variable | Default | Required |
    |----------|---------|----------|
    | `SOLANA_KEYPAIR_PATH` | `~/.config/solana/id.json` | Yes |
-   | `COORDINATOR_URL` | `http://localhost:3000` | No |
+   | `COORDINATOR_URL` | `https://strike-coordinator-production.up.railway.app` | No |
    | `SOLANA_RPC_URL` | `http://localhost:8899` | No |
 
 4. **Tools needed:** `curl`, `jq`, `solana` CLI (for signing), `base64` (for TX decode/encode).
