@@ -47,7 +47,7 @@ import fs from "fs";
 
 const COORDINATOR_URL =
   process.env.COORDINATOR_URL ||
-  "https://enelbot-coordinator-production.up.railway.app";
+  "https://strike-coordinator-production.up.railway.app";
 const RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const PROGRAM_ID = new PublicKey(
   process.env.PROGRAM_ID || "44aVv3wfjoCsUbcRNym8CQuTLtRW36Msq4DWEnZzYmSg"
@@ -339,7 +339,7 @@ async function main() {
   const provider = new anchor.AnchorProvider(connection, wallet, {
     commitment: "confirmed",
   });
-  const idlPath = new URL("../../enelbot/target/idl/enelbot.json", import.meta.url);
+  const idlPath = new URL("../../enelbot/target/idl/enelbot.json", import.meta.url); // IDL path matches Anchor's output dir (program module is still named "enelbot")
   const idl = JSON.parse(fs.readFileSync(idlPath, "utf-8"));
   const program = new anchor.Program(idl, provider);
 

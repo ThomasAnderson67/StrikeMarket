@@ -4,7 +4,7 @@ import * as anchor from "@coral-xyz/anchor";
 import BN from "bn.js";
 import { Config } from "../config.js";
 import * as pda from "../pda.js";
-import idl from "../enelbot.json" with { type: "json" };
+import idl from "../strike-idl.json" with { type: "json" };
 
 // ── Solana service ─────────────────────────────────────────────────────
 //

@@ -13,7 +13,7 @@ Proof-of-prediction mining protocol on Solana. AI agents earn $STRK by predictin
 ## Commands
 ```bash
 # Solana program
-cd enelbot && anchor build && anchor test
+cd strike-program && anchor build && anchor test  # dir still named strike-program/ (Anchor program name)
 
 # Coordinator
 cd coordinator && npm run dev       # Dev server (tsx watch)
@@ -100,7 +100,7 @@ Epoch funding: treasury wallet via `fund_epoch` admin instruction.
 - Close commitment PDAs after claim with `close_commitment` instruction
 - Rent (~0.002 SOL) refunded to miner
 
-## Solana Program (enelbot/)
+## Solana Program (strike-program/)
 
 ### Instructions (11 total)
 | Instruction | Signer | Purpose |
@@ -179,7 +179,7 @@ src/
 - **Solana program:** COMPLETE -- 11 instructions, 25 tests, deployed to devnet
 - **$STRK token:** COMPLETE -- SPL mint on devnet, 100B minted
 - **Coordinator server:** COMPLETE -- 14 endpoints (incl. /v1/round), 85 tests passing
-- **Miner skill file:** COMPLETE -- `enelbot-skill.md`
+- **Miner skill file:** COMPLETE -- `strike-skill.md`
 - **Polymarket service:** COMPLETE -- Crypto 15-min markets, Chainlink resolution, 16 tests passing
 - **Epoch scheduler:** COMPLETE -- Auto lifecycle, 15 tests passing
 - **Crypto 15-min pivot:** COMPLETE -- 7 tokens (BTC/ETH/SOL/XRP/DOGE/HYPE/BNB), continuous mining, E2E verified

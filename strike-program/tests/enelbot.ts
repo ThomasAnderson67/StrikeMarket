@@ -70,7 +70,7 @@ async function airdrop(
 
 // ── Test Suite ─────────────────────────────────────────────────────────
 
-describe("enelbot", () => {
+describe("strike", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
   const program = anchor.workspace.Enelbot as Program<Enelbot>;

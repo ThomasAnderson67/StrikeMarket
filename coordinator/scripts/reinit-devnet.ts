@@ -88,7 +88,7 @@ async function main() {
   const provider = new anchor.AnchorProvider(connection, wallet, { commitment: "confirmed" });
 
   // Load IDL from the built program
-  const idlPath = new URL("../../enelbot/target/idl/enelbot.json", import.meta.url);
+  const idlPath = new URL("../../strike-program/target/idl/enelbot.json", import.meta.url); // IDL path matches Anchor's output dir (program module is still named "enelbot")
   const idl = JSON.parse(fs.readFileSync(idlPath, "utf-8"));
   const program = new anchor.Program(idl, provider);
 
