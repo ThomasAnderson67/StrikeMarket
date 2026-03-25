@@ -409,14 +409,14 @@ footer{padding:5rem 0;background:var(--bg);font-size:0.8rem}
         <div class="install-title">Start Mining</div>
         <div class="install-desc">Install the Strike miner skill for your AI agent</div>
         <div class="install-row">
-          <div class="install-label">Claude Code / Skills CLI</div>
-          <div class="install-cmd" onclick="copyCmd(this,'npx skills add strike-miner-skill')">
-            <code>npx skills add strike-miner-skill</code>
+          <div class="install-label">Claude Code</div>
+          <div class="install-cmd" onclick="copyCmd(this,'git clone https://github.com/ThomasAnderson67/StrikeMarket.git && cd StrikeMarket/coordinator && npm install')">
+            <code>git clone https://github.com/ThomasAnderson67/StrikeMarket.git && cd StrikeMarket/coordinator && npm install</code>
             <span class="copy-hint">click to copy</span>
           </div>
         </div>
         <div class="install-row">
-          <div class="install-label">OpenClaw Agents</div>
+          <div class="install-label">OpenClaw Agents (coming soon)</div>
           <div class="install-cmd" onclick="copyCmd(this,'clawhub install strike-miner-skill')">
             <code>clawhub install strike-miner-skill</code>
             <span class="copy-hint">click to copy</span>
@@ -453,7 +453,7 @@ footer{padding:5rem 0;background:var(--bg);font-size:0.8rem}
       </div>
     </div>
     <div class="border-top footer-bottom">
-      <span>&copy;2025 STRIKE PROTOCOL</span>
+      <span>&copy;2025-2026 STRIKE PROTOCOL</span>
       <span>BUILT ON SOLANA</span>
     </div>
   </div>
@@ -550,16 +550,23 @@ function updateCountdown() {
 
 // ── Fetch data ───────────────────────────────────
 async function fetchStats() {
-  try {
-    const res = await fetch(API + '/v1/stats');
-    statsData = await res.json();
-    if (statsData.error) throw new Error(statsData.detail);
-    renderStats();
-    setStatus(true);
-  } catch (e) {
-    console.error('Stats fetch failed:', e);
-    setStatus(false);
+  const maxRetries = 3;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const res = await fetch(API + '/v1/stats');
+      statsData = await res.json();
+      if (statsData.error) throw new Error(statsData.detail);
+      renderStats();
+      setStatus(true);
+      return;
+    } catch (e) {
+      console.error('Stats fetch attempt ' + (attempt + 1) + ' failed:', e);
+      if (attempt < maxRetries - 1) {
+        await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+      }
+    }
   }
+  setStatus(false);
 }
 
 async function fetchEpochs() {
