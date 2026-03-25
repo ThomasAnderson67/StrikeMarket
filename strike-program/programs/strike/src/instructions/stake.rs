@@ -15,6 +15,13 @@ pub struct Stake<'info> {
     pub global_state: Account<'info, GlobalState>,
 
     #[account(
+        mut,
+        seeds = [b"epoch", global_state.current_epoch.to_le_bytes().as_ref()],
+        bump = epoch_state.bump,
+    )]
+    pub epoch_state: Account<'info, EpochState>,
+
+    #[account(
         init_if_needed,
         payer = miner,
         space = 8 + MinerState::INIT_SPACE,
@@ -60,7 +67,18 @@ pub fn stake_handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
         StrikeError::UnstakePending
     );
 
-    // Transfer tokens to vault
+    // Calculate mining fee and net stake amount
+    let fee_bps = ctx.accounts.global_state.mining_fee_bps as u64;
+    let fee = amount
+        .checked_mul(fee_bps)
+        .ok_or(StrikeError::Overflow)?
+        .checked_div(10000)
+        .ok_or(StrikeError::Overflow)?;
+    let net_amount = amount
+        .checked_sub(fee)
+        .ok_or(StrikeError::Overflow)?;
+
+    // Transfer full amount from miner to vault
     token::transfer(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
@@ -73,20 +91,32 @@ pub fn stake_handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
         amount,
     )?;
 
+    // Record only the net amount as staked (fee goes to reward pool)
     miner_state.staked_amount = miner_state
         .staked_amount
-        .checked_add(amount)
+        .checked_add(net_amount)
         .ok_or(StrikeError::Overflow)?;
 
     let new_tier = calculate_tier(miner_state.staked_amount);
     require!(new_tier >= 1, StrikeError::InsufficientStake);
     miner_state.tier = new_tier;
 
+    // Add fee to current epoch's reward pool
+    let epoch_state = &mut ctx.accounts.epoch_state;
+    epoch_state.reward_amount = epoch_state
+        .reward_amount
+        .checked_add(fee)
+        .ok_or(StrikeError::Overflow)?;
+
     msg!(
-        "Staked {} base units. Total: {}. Tier: {}",
+        "Staked {} base units (fee: {}, net: {}). Total: {}. Tier: {}. Epoch {} reward pool: {}",
         amount,
+        fee,
+        net_amount,
         miner_state.staked_amount,
-        miner_state.tier
+        miner_state.tier,
+        epoch_state.epoch_id,
+        epoch_state.reward_amount
     );
     Ok(())
 }

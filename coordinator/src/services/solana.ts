@@ -194,7 +194,11 @@ export class SolanaService {
   }
 
   async buildStakeTx(miner: PublicKey, amount: bigint, minerTokenAccount: PublicKey): Promise<string> {
+    const globalState = await this.getGlobalState();
+    const currentEpoch = (globalState as any).currentEpoch.toNumber();
+
     const [globalStatePda] = pda.findGlobalState(this.config.programId);
+    const [epochStatePda] = pda.findEpochState(currentEpoch, this.config.programId);
     const [minerStatePda] = pda.findMinerState(miner, this.config.programId);
     const [vaultPda] = pda.findVault(this.config.programId);
 
@@ -202,6 +206,7 @@ export class SolanaService {
       .stake(new BN(amount.toString()))
       .accounts({
         globalState: globalStatePda,
+        epochState: epochStatePda,
         minerState: minerStatePda,
         vault: vaultPda,
         minerTokenAccount,

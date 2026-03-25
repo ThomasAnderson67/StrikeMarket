@@ -44,6 +44,7 @@ export interface Config {
   adminTokenAccount: PublicKey;
   jwtSecret: string;
   jwtExpirySeconds: number;
+  /** Optional: only needed if using fund_epoch for bonus rewards */
   epochRewardAmount: bigint;
 }
 
@@ -65,7 +66,7 @@ export function loadConfig(): Config {
     host: process.env.HOST || "0.0.0.0",
     rpcUrl: process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com",
     programId: new PublicKey(
-      process.env.PROGRAM_ID || "FqHFuyBQAa8kMLckBEX9xUAoMtctUfxWup9pCDi6ChQL"
+      process.env.PROGRAM_ID || "73aZc4WACFdJ288yQmEq9RsGS3neC3P3keqGXmGktVh7"
     ),
     strkMint: new PublicKey(process.env.STRK_MINT || process.env.ENEL_MINT || "DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk"),
     adminKeypair,

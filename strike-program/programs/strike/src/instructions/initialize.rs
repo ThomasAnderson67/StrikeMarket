@@ -10,6 +10,7 @@ pub struct InitializeParams {
     pub reveal_start_offset: i64,
     pub reveal_end_offset: i64,
     pub market_count: u16,
+    pub mining_fee_bps: u16,       // mining fee in basis points (100 = 1%)
 }
 
 #[derive(Accounts)]
@@ -63,6 +64,7 @@ pub fn handler(ctx: Context<Initialize>, params: InitializeParams) -> Result<()>
     global_state.commit_end_offset = params.commit_end_offset;
     global_state.reveal_start_offset = params.reveal_start_offset;
     global_state.reveal_end_offset = params.reveal_end_offset;
+    global_state.mining_fee_bps = params.mining_fee_bps;
     global_state.bump = ctx.bumps.global_state;
 
     let epoch_state = &mut ctx.accounts.epoch_state;

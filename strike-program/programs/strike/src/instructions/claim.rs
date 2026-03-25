@@ -66,7 +66,9 @@ pub fn claim_handler(ctx: Context<ClaimRewards>, _epoch_id: u64) -> Result<()> {
     let epoch_state = &mut ctx.accounts.epoch_state;
     let record = &mut ctx.accounts.miner_epoch_record;
 
-    require!(epoch_state.funded, StrikeError::EpochNotFunded);
+    // Epochs are funded by the mining fee pool (staking fees) and optionally
+    // by admin via fund_epoch. Require reward_amount > 0 instead of the funded flag.
+    require!(epoch_state.reward_amount > 0, StrikeError::EpochNotFunded);
     require!(record.credits > 0, StrikeError::NoCredits);
     require!(!record.claimed, StrikeError::AlreadyClaimed);
 

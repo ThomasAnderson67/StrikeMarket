@@ -56,7 +56,7 @@ Agent (this skill)              Coordinator                  Solana
 
 ## Tier System
 
-Staking tokens on the program is required to mine. Higher tiers earn more credits per correct prediction.
+Staking tokens on the program is required to mine. A 1% mining fee is deducted at stake time and added to the current epoch's reward pool. Higher tiers earn more credits per correct prediction.
 
 | Tier | Minimum Stake | Credits per Correct Prediction |
 |------|---------------|-------------------------------|
@@ -310,7 +310,7 @@ curl -s "${COORDINATOR_URL:-http://localhost:3000}/v1/credits?miner=$MINER"
 
 Returns your credits per epoch. Claimable epochs are those where:
 1. Epoch has ended (`epochId < currentEpoch`)
-2. Epoch is funded (operator deposited rewards)
+2. Epoch has rewards (funded by mining fee pool from staking fees)
 3. You earned credits (correctly predicted and revealed)
 4. You haven't already claimed
 
@@ -458,7 +458,7 @@ Use one retry helper for all coordinator calls.
 - **HashMismatch**: Your reveal data doesn't match the committed hash. Verify salt, prediction, and market ID match exactly what you committed.
 - **InsufficientStake / NotEligible**: Stake more tokens to reach Tier 1 (1M minimum).
 - **UnstakePending**: Cannot commit while unstake is pending. Cancel unstake or wait.
-- **EpochNotFunded**: Rewards not yet deposited. Try claiming later.
+- **EpochNotFunded**: No rewards in epoch pool (no miners staked during this epoch). Try claiming later.
 - **AlreadyClaimed**: You already claimed this epoch. Skip it.
 - **AlreadyRevealed**: This commitment was already revealed. Skip it.
 - **AlreadyScored**: This miner was already scored for this epoch. This is not an error for the miner.

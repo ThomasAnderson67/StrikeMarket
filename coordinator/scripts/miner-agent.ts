@@ -50,7 +50,7 @@ const COORDINATOR_URL =
   "https://strike-coordinator-production.up.railway.app";
 const RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const PROGRAM_ID = new PublicKey(
-  process.env.PROGRAM_ID || "FqHFuyBQAa8kMLckBEX9xUAoMtctUfxWup9pCDi6ChQL"
+  process.env.PROGRAM_ID || "73aZc4WACFdJ288yQmEq9RsGS3neC3P3keqGXmGktVh7"
 );
 const STRK_MINT = new PublicKey(
   "DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk"
@@ -384,10 +384,16 @@ async function main() {
     );
     const minerProgram = new anchor.Program(idl, minerProvider);
 
+    // Read current epoch for epoch_state account (needed for mining fee pool)
+    const gs = await (program.account as any).globalState.fetch(globalState);
+    const currentEpochId = gs.currentEpoch.toNumber();
+    const [epochStatePda] = findPDA([Buffer.from("epoch"), epochIdBuf(currentEpochId)]);
+
     await minerProgram.methods
       .stake(new BN(TIER_1_AMOUNT))
       .accounts({
         globalState,
+        epochState: epochStatePda,
         minerState,
         vault,
         minerTokenAccount: minerAta.address,
@@ -399,7 +405,7 @@ async function main() {
       .rpc();
 
     const ms = await (program.account as any).minerState.fetch(minerState);
-    ok(`Staked ${TIER_1_AMOUNT / 10 ** TOKEN_DECIMALS} tokens -- tier ${ms.tier}`);
+    ok(`Staked ${TIER_1_AMOUNT / 10 ** TOKEN_DECIMALS} tokens -- tier ${ms.tier} (1% mining fee added to epoch reward pool)`);
   }
 
   // ── Step 4: Authenticate via coordinator API ──────────────────

@@ -42,6 +42,7 @@ pub struct GlobalState {
     pub commit_end_offset: i64,    // seconds from epoch_start (79200 = 22h)
     pub reveal_start_offset: i64,  // seconds from epoch_start (86400 = 24h)
     pub reveal_end_offset: i64,    // seconds from epoch_start (93600 = 26h)
+    pub mining_fee_bps: u16,       // mining fee in basis points (100 = 1%), deducted at stake time
     pub bump: u8,
 }
 

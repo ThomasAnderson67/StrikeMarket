@@ -142,6 +142,11 @@ pub fn score_miner_handler(ctx: Context<ScoreMiner>, epoch_id: u64, credits: u64
 }
 
 // ── Fund Epoch ─────────────────────────────────────────────────────────
+//
+// Optional: used for bonus rewards on top of the mining fee pool.
+// With the mining fee pool mechanism, staking fees automatically fund
+// each epoch's reward_amount. This instruction can add additional
+// rewards from the treasury if desired.
 
 #[derive(Accounts)]
 #[instruction(epoch_id: u64, amount: u64)]
@@ -185,9 +190,7 @@ pub struct FundEpoch<'info> {
 pub fn fund_epoch_handler(ctx: Context<FundEpoch>, _epoch_id: u64, amount: u64) -> Result<()> {
     let epoch_state = &mut ctx.accounts.epoch_state;
 
-    require!(!epoch_state.funded, StrikeError::AlreadyFunded);
-
-    // Transfer reward tokens to vault
+    // Transfer bonus reward tokens to vault
     token::transfer(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
@@ -201,8 +204,12 @@ pub fn fund_epoch_handler(ctx: Context<FundEpoch>, _epoch_id: u64, amount: u64) 
     )?;
 
     epoch_state.funded = true;
-    epoch_state.reward_amount = amount;
+    // Additive: bonus rewards on top of mining fee pool
+    epoch_state.reward_amount = epoch_state
+        .reward_amount
+        .checked_add(amount)
+        .ok_or(StrikeError::Overflow)?;
 
-    msg!("Funded epoch {} with {} base units", epoch_state.epoch_id, amount);
+    msg!("Funded epoch {} with {} bonus base units (total: {})", epoch_state.epoch_id, amount, epoch_state.reward_amount);
     Ok(())
 }

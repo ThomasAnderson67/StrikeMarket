@@ -60,17 +60,19 @@ This proves wallet control and prevents abuse.
 
 ### E. Claim Rewards
 
+Epoch rewards are funded by the **mining fee pool**: when a miner stakes tokens, a small percentage (1%) is automatically deducted as a mining fee and added to the current epoch's reward pool on-chain. No treasury funding is required.
+
 Miner rewards are calculated proportionally:
 
-`miner_reward = epoch_reward * (miner_credits / total_epoch_credits)`
+`miner_reward = epoch_reward_pool × (miner_credits / total_epoch_credits)`
 
-Miners claim their token directly on-chain after each epoch closes.
+Miners claim their token directly on-chain after each epoch closes. The reward pool is self-sustaining — as long as miners are staking, rewards flow.
 
 ---
 
 ## Tier System
 
-Staking token on the program is required to mine. Higher tiers unlock credit multipliers.
+Staking token on the program is required to mine. When staking, a 1% mining fee is deducted and added to the current epoch's reward pool. The remaining 99% is locked as stake. Higher tiers unlock credit multipliers.
 
 | Tier | Minimum Stake | Credits per Correct Prediction |
 |------|--------------|-------------------------------|
@@ -89,16 +91,17 @@ Tiers are intentionally accessible at any market cap. The goal is maximum partic
 - **Supply**: 100,000,000,000 (fixed)
 - **Chain**: Solana
 - **Launch**: Fair launch on Pump.fun
-- **Epoch rewards**: Funded by treasury
+- **Epoch rewards**: Self-sustaining mining fee pool (1% of all staked tokens)
 
 ---
 
 ## Trust Model
 
-In V1, the Strike coordinator is a centralized server operated by the team. It performs two privileged actions:
+In V1, the Strike coordinator is a centralized server operated by the team. It performs one privileged action:
 
 1. **Scoring**: After each epoch, the coordinator resolves market outcomes via Polymarket and submits `score_miner` transactions on-chain.
-2. **Funding**: The coordinator submits `fund_epoch` transactions to distribute rewards from the treasury.
+
+Epoch rewards are self-funded by the mining fee pool — no treasury funding required. The optional `fund_epoch` instruction exists for bonus rewards but is not part of normal operation.
 
 On-chain guards constrain the coordinator: commit hashes must match reveals, credits cannot exceed the market count, and reward math is enforced by the smart contract. The coordinator cannot fabricate predictions or inflate credits beyond what the on-chain state allows.
 

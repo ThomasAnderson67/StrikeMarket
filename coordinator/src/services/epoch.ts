@@ -280,7 +280,7 @@ export class EpochManager {
    */
   async closeEpoch(epochId: number): Promise<{
     scores: MinerScore[];
-    fundTxSig: string;
+    fundTxSig: string | null;
   }> {
     // 1. Resolve all rounds' markets
     // Try to resolve any unresolved rounds first
@@ -335,12 +335,17 @@ export class EpochManager {
       }
     }
 
-    // 5. Fund the epoch (with retry — protocol-critical)
-    const fundTxSig = await withRetry(
-      `fundEpoch(${epochId})`,
-      () => this.solana.fundEpoch(epochId, this.config.epochRewardAmount),
-    );
-    console.log(`[epoch] Funded epoch ${epochId} (tx: ${fundTxSig})`);
+    // 5. Mining fee pool: epoch is auto-funded by staking fees on-chain.
+    //    fundEpoch is no longer required — only used for optional bonus rewards.
+    //    Read the on-chain reward_amount to see what was accumulated.
+    let fundTxSig: string | null = null;
+    try {
+      const epochState = await this.solana.getEpochState(epochId);
+      const rewardAmount = BigInt((epochState as any).rewardAmount.toString());
+      console.log(`[epoch] Epoch ${epochId} reward pool (from mining fees): ${rewardAmount}`);
+    } catch (err) {
+      console.warn(`[epoch] Could not read epoch state for reward amount: ${err}`);
+    }
 
     // 6. Save epoch details to store for landing page API
     const totalPredictions = predictions.length;
@@ -361,6 +366,15 @@ export class EpochManager {
       .slice(0, 10)
       .map((s) => ({ miner: s.miner.toBase58(), credits: s.credits }));
 
+    // Read on-chain reward amount for epoch detail
+    let onChainReward = "0";
+    try {
+      const epochState = await this.solana.getEpochState(epochId);
+      onChainReward = (epochState as any).rewardAmount.toString();
+    } catch {
+      // fallback
+    }
+
     this.epochStore.set(epochId, {
       epochId,
       markets: marketDetails,
@@ -370,7 +384,7 @@ export class EpochManager {
       accuracy: totalPredictions > 0 ? correctPredictions / totalPredictions : 0,
       totalCredits: scores.reduce((sum, s) => sum + s.credits, 0),
       funded: true,
-      rewardAmount: this.config.epochRewardAmount.toString(),
+      rewardAmount: onChainReward,
       scoredAt: Math.floor(Date.now() / 1000),
     });
 

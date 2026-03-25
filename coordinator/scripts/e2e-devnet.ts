@@ -184,6 +184,7 @@ async function main() {
         revealStartOffset: new BN(REVEAL_START_OFFSET),
         revealEndOffset: new BN(REVEAL_END_OFFSET),
         marketCount: 1,
+        miningFeeBps: 100, // 1% mining fee
       })
       .accounts({
         globalState,
@@ -260,13 +261,14 @@ async function main() {
 
   // ── Step 4: Stake ─────────────────────────────────────────────
 
-  step("Stake $STRK (tier 1)");
+  step("Stake $STRK (tier 1) — 1% mining fee goes to epoch reward pool");
   const [minerState] = findPDA([Buffer.from("miner"), miner.publicKey.toBuffer()]);
 
   await program.methods
     .stake(new BN(TIER_1_AMOUNT))
     .accounts({
       globalState,
+      epochState: activeEpochState,
       minerState,
       vault,
       minerTokenAccount: minerAta.address,
@@ -278,7 +280,8 @@ async function main() {
     .rpc();
 
   const ms = await (program.account as any).minerState.fetch(minerState);
-  ok(`Staked ${TIER_1_AMOUNT / 10 ** TOKEN_DECIMALS} $STRK → tier ${ms.tier}`);
+  const esAfterStake = await (program.account as any).epochState.fetch(activeEpochState);
+  ok(`Staked ${TIER_1_AMOUNT / 10 ** TOKEN_DECIMALS} $STRK → tier ${ms.tier} (net staked: ${ms.stakedAmount.toNumber()}, epoch reward pool: ${esAfterStake.rewardAmount.toNumber()})`);
 
   // ── Step 5: Commit prediction ─────────────────────────────────
 
@@ -396,9 +399,12 @@ async function main() {
   const esAfterScore = await (program.account as any).epochState.fetch(activeEpochState);
   ok(`Epoch total credits: ${esAfterScore.totalCredits.toNumber()}`);
 
-  // ── Step 9: Fund epoch ────────────────────────────────────────
+  // ── Step 9: Fund epoch (optional bonus — mining fee pool already funded by staking)
 
-  step("Fund epoch (100K $STRK reward pool)");
+  step("Fund epoch (optional bonus: 100K $STRK on top of mining fee pool)");
+  const esBeforeFund = await (program.account as any).epochState.fetch(activeEpochState);
+  ok(`Mining fee pool before bonus: ${esBeforeFund.rewardAmount.toNumber() / 10 ** TOKEN_DECIMALS} $STRK`);
+
   await program.methods
     .fundEpoch(new BN(currentEpochId), new BN(REWARD_AMOUNT))
     .accounts({
@@ -412,7 +418,7 @@ async function main() {
     .rpc();
 
   const esAfterFund = await (program.account as any).epochState.fetch(activeEpochState);
-  ok(`Funded: ${esAfterFund.rewardAmount.toNumber() / 10 ** TOKEN_DECIMALS} $STRK`);
+  ok(`Total reward pool (fees + bonus): ${esAfterFund.rewardAmount.toNumber() / 10 ** TOKEN_DECIMALS} $STRK`);
 
   // ── Step 10: Claim rewards ────────────────────────────────────
 

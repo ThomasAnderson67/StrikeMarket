@@ -1,5 +1,5 @@
 {
-  "address": "FqHFuyBQAa8kMLckBEX9xUAoMtctUfxWup9pCDi6ChQL",
+  "address": "73aZc4WACFdJ288yQmEq9RsGS3neC3P3keqGXmGktVh7",
   "metadata": {
     "name": "strike",
     "version": "0.1.0",
@@ -939,6 +939,29 @@
           }
         },
         {
+          "name": "epoch_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  112,
+                  111,
+                  99,
+                  104
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "global_state.current_epoch",
+                "account": "GlobalState"
+              }
+            ]
+          }
+        },
+        {
           "name": "miner_state",
           "writable": true,
           "pda": {
@@ -1446,6 +1469,10 @@
             "type": "i64"
           },
           {
+            "name": "mining_fee_bps",
+            "type": "u16"
+          },
+          {
             "name": "bump",
             "type": "u8"
           }
@@ -1475,6 +1502,10 @@
           },
           {
             "name": "market_count",
+            "type": "u16"
+          },
+          {
+            "name": "mining_fee_bps",
             "type": "u16"
           }
         ]

@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-strike = "FqHFuyBQAa8kMLckBEX9xUAoMtctUfxWup9pCDi6ChQL"
+strike = "73aZc4WACFdJ288yQmEq9RsGS3neC3P3keqGXmGktVh7"
 
 [programs.devnet]
-strike = "FqHFuyBQAa8kMLckBEX9xUAoMtctUfxWup9pCDi6ChQL"
+strike = "73aZc4WACFdJ288yQmEq9RsGS3neC3P3keqGXmGktVh7"
 
 [registry]
 url = "https://api.apr.dev"

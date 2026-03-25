@@ -32,7 +32,7 @@ import fs from "fs";
 // ── Config ──────────────────────────────────────────────────────────
 
 const RPC_URL = "https://api.devnet.solana.com";
-const PROGRAM_ID = new PublicKey("FqHFuyBQAa8kMLckBEX9xUAoMtctUfxWup9pCDi6ChQL");
+const PROGRAM_ID = new PublicKey("73aZc4WACFdJ288yQmEq9RsGS3neC3P3keqGXmGktVh7");
 const STRK_MINT = new PublicKey("DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk");
 
 // Production epoch timing: 24h epochs with overlapping commit/reveal windows.
@@ -121,6 +121,7 @@ async function main() {
         revealStartOffset: new BN(REVEAL_START_OFFSET),
         revealEndOffset: new BN(REVEAL_END_OFFSET),
         marketCount: MARKET_COUNT,
+        miningFeeBps: 100, // 1% mining fee
       })
       .accounts({
         globalState,
