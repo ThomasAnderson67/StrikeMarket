@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::token_interface::{TokenInterface, TokenAccount, Mint};
 
 use crate::state::*;
 
@@ -42,15 +42,15 @@ pub struct Initialize<'info> {
         token::mint = strk_mint,
         token::authority = global_state,
     )]
-    pub vault: Account<'info, TokenAccount>,
+    pub vault: InterfaceAccount<'info, TokenAccount>,
 
-    pub strk_mint: Account<'info, Mint>,
+    pub strk_mint: InterfaceAccount<'info, Mint>,
 
     #[account(mut)]
     pub admin: Signer<'info>,
 
     pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 pub fn handler(ctx: Context<Initialize>, params: InitializeParams) -> Result<()> {

@@ -1,5 +1,5 @@
 import { Connection, PublicKey, Transaction, SystemProgram } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import * as anchor from "@coral-xyz/anchor";
 import BN from "bn.js";
 import { Config } from "../config.js";
@@ -211,7 +211,7 @@ export class SolanaService {
         vault: vaultPda,
         minerTokenAccount,
         miner,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
       .instruction();
@@ -246,7 +246,7 @@ export class SolanaService {
         vault: vaultPda,
         minerTokenAccount,
         miner,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
       })
       .instruction();
 
@@ -268,7 +268,7 @@ export class SolanaService {
         vault: vaultPda,
         minerTokenAccount,
         miner,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
       })
       .instruction();
 
@@ -354,7 +354,7 @@ export class SolanaService {
         vault: vaultPda,
         adminTokenAccount: this.config.adminTokenAccount,
         admin: this.config.adminKeypair.publicKey,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
       })
       .signers([this.config.adminKeypair])
       .rpc();

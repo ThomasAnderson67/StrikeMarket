@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer};
+use anchor_spl::token_interface::{self, TokenInterface, TokenAccount, Transfer};
 
 use crate::error::StrikeError;
 use crate::state::*;
@@ -172,26 +172,26 @@ pub struct FundEpoch<'info> {
         token::mint = global_state.strk_mint,
         token::authority = global_state,
     )]
-    pub vault: Account<'info, TokenAccount>,
+    pub vault: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
         mut,
         token::mint = global_state.strk_mint,
         token::authority = admin,
     )]
-    pub admin_token_account: Account<'info, TokenAccount>,
+    pub admin_token_account: InterfaceAccount<'info, TokenAccount>,
 
     #[account(mut)]
     pub admin: Signer<'info>,
 
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 pub fn fund_epoch_handler(ctx: Context<FundEpoch>, _epoch_id: u64, amount: u64) -> Result<()> {
     let epoch_state = &mut ctx.accounts.epoch_state;
 
     // Transfer bonus reward tokens to vault
-    token::transfer(
+    token_interface::transfer(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
             Transfer {

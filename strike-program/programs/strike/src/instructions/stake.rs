@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer};
+use anchor_spl::token_interface::{self, TokenInterface, TokenAccount, Transfer};
 
 use crate::error::StrikeError;
 use crate::state::*;
@@ -37,19 +37,19 @@ pub struct Stake<'info> {
         token::mint = global_state.strk_mint,
         token::authority = global_state,
     )]
-    pub vault: Account<'info, TokenAccount>,
+    pub vault: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
         mut,
         token::mint = global_state.strk_mint,
         token::authority = miner,
     )]
-    pub miner_token_account: Account<'info, TokenAccount>,
+    pub miner_token_account: InterfaceAccount<'info, TokenAccount>,
 
     #[account(mut)]
     pub miner: Signer<'info>,
 
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
 
@@ -79,7 +79,7 @@ pub fn stake_handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
         .ok_or(StrikeError::Overflow)?;
 
     // Transfer full amount from miner to vault
-    token::transfer(
+    token_interface::transfer(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
             Transfer {
@@ -179,19 +179,19 @@ pub struct Withdraw<'info> {
         token::mint = global_state.strk_mint,
         token::authority = global_state,
     )]
-    pub vault: Account<'info, TokenAccount>,
+    pub vault: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
         mut,
         token::mint = global_state.strk_mint,
         token::authority = miner,
     )]
-    pub miner_token_account: Account<'info, TokenAccount>,
+    pub miner_token_account: InterfaceAccount<'info, TokenAccount>,
 
     #[account(mut)]
     pub miner: Signer<'info>,
 
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 pub fn withdraw_handler(ctx: Context<Withdraw>) -> Result<()> {
@@ -213,7 +213,7 @@ pub fn withdraw_handler(ctx: Context<Withdraw>) -> Result<()> {
     // Transfer tokens back to miner, signed by GlobalState PDA
     let bump = ctx.accounts.global_state.bump;
     let seeds: &[&[u8]] = &[b"global", &[bump]];
-    token::transfer(
+    token_interface::transfer(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             Transfer {

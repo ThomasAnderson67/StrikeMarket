@@ -31,7 +31,7 @@ import {
   VersionedTransaction,
 } from "@solana/web3.js";
 import {
-  TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
   getOrCreateAssociatedTokenAccount,
   transfer,
   getAssociatedTokenAddress,
@@ -50,7 +50,7 @@ const COORDINATOR_URL =
   "https://strike-coordinator-production.up.railway.app";
 const RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const PROGRAM_ID = new PublicKey(
-  process.env.PROGRAM_ID || "73aZc4WACFdJ288yQmEq9RsGS3neC3P3keqGXmGktVh7"
+  process.env.PROGRAM_ID || "2NvC17gpv5viNWDm1h48rGvSPd1S9A8C46ntj98LS8yv"
 );
 const STRK_MINT = new PublicKey(
   "DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk"
@@ -398,7 +398,7 @@ async function main() {
         vault,
         minerTokenAccount: minerAta.address,
         miner: miner.publicKey,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
       .signers([miner])

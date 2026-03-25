@@ -14,7 +14,7 @@
  *
  * Requires:
  *   - Program deployed to devnet (2BewLeJcdz8cmdjo1WvhtNphFoc7wk9V6fXUk5vzb19Q)
- *   - $STRK mint on devnet (DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk)
+ *   - $STRK mint on devnet (7kWXgrjEj2TEXWsdFdP5wR2wdNQkhqvEzRwCyvRapump)
  *   - Admin wallet at ~/.config/solana/id.json with SOL
  */
 
@@ -31,9 +31,9 @@ import fs from "fs";
 
 // ── Config ──────────────────────────────────────────────────────────
 
-const RPC_URL = "https://api.devnet.solana.com";
+const RPC_URL = "https://api.mainnet-beta.solana.com";
 const PROGRAM_ID = new PublicKey("2NvC17gpv5viNWDm1h48rGvSPd1S9A8C46ntj98LS8yv");
-const STRK_MINT = new PublicKey("DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk");
+const STRK_MINT = new PublicKey("7kWXgrjEj2TEXWsdFdP5wR2wdNQkhqvEzRwCyvRapump");
 
 // Production epoch timing: 24h epochs with overlapping commit/reveal windows.
 // Both commit and reveal are open the entire epoch for continuous mining.

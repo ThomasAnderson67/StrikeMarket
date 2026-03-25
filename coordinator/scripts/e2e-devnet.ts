@@ -25,7 +25,7 @@ import {
   LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
 import {
-  TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
   getOrCreateAssociatedTokenAccount,
   transfer,
 } from "@solana/spl-token";
@@ -193,7 +193,7 @@ async function main() {
         strkMint: STRK_MINT,
         admin: admin.publicKey,
         systemProgram: SystemProgram.programId,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
       })
       .rpc();
     ok("Program initialized, epoch 1 started");
@@ -273,7 +273,7 @@ async function main() {
       vault,
       minerTokenAccount: minerAta.address,
       miner: miner.publicKey,
-      tokenProgram: TOKEN_PROGRAM_ID,
+      tokenProgram: TOKEN_2022_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     })
     .signers([miner])
@@ -413,7 +413,7 @@ async function main() {
       vault,
       adminTokenAccount: adminAta.address,
       admin: admin.publicKey,
-      tokenProgram: TOKEN_PROGRAM_ID,
+      tokenProgram: TOKEN_2022_PROGRAM_ID,
     })
     .rpc();
 
@@ -434,7 +434,7 @@ async function main() {
       vault,
       minerTokenAccount: minerAta.address,
       miner: miner.publicKey,
-      tokenProgram: TOKEN_PROGRAM_ID,
+      tokenProgram: TOKEN_2022_PROGRAM_ID,
     })
     .signers([miner])
     .rpc();
