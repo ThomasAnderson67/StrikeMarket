@@ -20,8 +20,8 @@
 :root {
   --bg:#0d0010;
   --text-main:#f5f3ff;
-  --text-muted:#7e22ce;
-  --text-dim:#4c1d95;
+  --text-muted:#a855f7;
+  --text-dim:#6b21a8;
   --accent:#c084fc;
   --accent-dim:#9333ea;
   --accent-glow:rgba(192,132,252,0.15);
@@ -88,7 +88,8 @@ header{
 .status-dot{
   width:6px;height:6px;border-radius:50%;background:var(--text-dim);
 }
-.status-dot.live{background:var(--green);box-shadow:0 0 8px var(--green)}
+.status-dot.live{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 8px var(--green)}50%{opacity:0.6;box-shadow:0 0 16px var(--green)}}
 .status-dot.offline{background:var(--red)}
 
 /* ── Hero ────────────────────────────────────────── */
@@ -378,7 +379,7 @@ footer{padding:4rem 0 2rem;background:linear-gradient(180deg,var(--bg) 0%,rgba(1
   <div class="container">
     <div class="grid">
       <div style="grid-column:span 3;">
-        <span class="label">Protocol</span>
+        <h2 class="label">Protocol</h2>
         <div style="margin-top:1.5rem;font-size:0.75rem;color:var(--text-muted);line-height:1.6">
           Epoch-based mining<br>
           Commit-reveal scheme<br>
@@ -400,7 +401,7 @@ footer{padding:4rem 0 2rem;background:linear-gradient(180deg,var(--bg) 0%,rgba(1
   <div class="container">
     <div class="epoch-header">
       <div>
-        <span class="label">Epochs</span>
+        <h2 class="label">Epochs</h2>
         <p style="font-size:0.85rem;color:var(--text-muted);margin-top:0.3rem">
           Each epoch is a 24-hour prediction cycle with continuous 15-min crypto rounds.
         </p>
@@ -420,7 +421,7 @@ footer{padding:4rem 0 2rem;background:linear-gradient(180deg,var(--bg) 0%,rgba(1
   <div class="container">
     <div class="grid">
       <div class="install-inner">
-        <div class="install-title">Start Mining</div>
+        <h2 class="install-title">Start Mining</h2>
         <div class="install-desc">Install the Strike miner skill for your AI agent</div>
         <div class="install-row">
           <div class="install-label">Claude Code / Skills CLI</div>
@@ -455,7 +456,7 @@ footer{padding:4rem 0 2rem;background:linear-gradient(180deg,var(--bg) 0%,rgba(1
         </p>
         <div style="margin-top:1.2rem">
           <span style="font-size:0.55rem;color:var(--accent);text-transform:uppercase;letter-spacing:0.12em;opacity:0.7">Contract Address</span><br>
-          <span class="ca-inline" id="caValue" style="font-size:0.75rem;color:var(--text-muted)">TBA</span>
+          <span class="ca-inline" id="caValue" title="Contract address will be published at mainnet launch" style="font-size:0.75rem;color:var(--text-muted)">Mainnet launch soon</span>
         </div>
       </div>
       <div class="footer-col" style="grid-column:span 2">
@@ -623,7 +624,13 @@ function renderStats() {
 
   if (statsData.nextTransition > 0) {
     startCountdown(statsData.nextTransition);
-    document.getElementById('countdownLabel').textContent = 'Next Phase';
+    if (phase === 'commit') {
+      document.getElementById('countdownLabel').textContent = 'Scoring in';
+    } else if (phase === 'scoring') {
+      document.getElementById('countdownLabel').textContent = 'Next Epoch in';
+    } else {
+      document.getElementById('countdownLabel').textContent = 'Next Phase';
+    }
   } else {
     document.getElementById('countdown').textContent = '--:--:--';
     document.getElementById('countdownLabel').textContent = phase === 'scoring' ? 'Scoring' : 'Waiting';

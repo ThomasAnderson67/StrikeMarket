@@ -55,6 +55,13 @@ async function main() {
     },
   });
 
+  // Security headers
+  app.addHook('onSend', (request, reply, payload, done) => {
+    reply.header('X-Content-Type-Options', 'nosniff');
+    reply.header('X-Frame-Options', 'DENY');
+    done();
+  });
+
   // CORS for dashboard
   await app.register(cors, { origin: true });
 
