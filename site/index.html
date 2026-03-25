@@ -243,14 +243,15 @@ header{
 .leaderboard-credits{font-size:0.8rem;font-weight:400;color:var(--text-main)}
 
 /* ── Footer ──────────────────────────────────────── */
-footer{padding:5rem 0;background:var(--bg);font-size:0.8rem}
-.footer-col{grid-column:span 3;display:flex;flex-direction:column;gap:0.5rem}
-.footer-header{color:var(--text-muted);margin-bottom:0.8rem;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.06em}
-.footer-link{color:var(--text-main);transition:color 0.2s}
-.footer-link:hover{color:var(--accent)}
+footer{padding:4rem 0 2rem;background:linear-gradient(180deg,var(--bg) 0%,rgba(139,92,246,0.03) 100%);font-size:0.8rem}
+.footer-col{grid-column:span 3;display:flex;flex-direction:column;gap:0.6rem}
+.footer-header{color:var(--accent);margin-bottom:0.6rem;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.12em;font-weight:500}
+.footer-link{color:var(--text-dim);transition:all 0.2s;font-size:0.8rem;padding:0.2rem 0}
+.footer-link:hover{color:var(--accent);padding-left:0.3rem}
 .footer-bottom{
-  margin-top:4rem;padding-top:1rem;display:flex;justify-content:space-between;
-  color:var(--text-dim);font-size:0.65rem;text-transform:uppercase;letter-spacing:0.04em;
+  margin-top:3rem;padding-top:1rem;display:flex;justify-content:space-between;
+  color:var(--text-dim);font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;
+  opacity:0.5;
 }
 .ca-inline{
   font-family:'SF Mono','Fira Code',monospace;font-size:0.7rem;
@@ -430,31 +431,37 @@ footer{padding:5rem 0;background:var(--bg);font-size:0.8rem}
 </section>
 
 <!-- ── Footer ──────────────────────────────────────── -->
-<footer class="border-top">
+<footer>
   <div class="container">
+    <div style="width:100%;height:1px;background:linear-gradient(90deg,transparent,rgba(139,92,246,0.3),transparent);margin-bottom:3rem"></div>
     <div class="grid">
-      <div class="footer-col" style="grid-column:span 6">
-        <h3 style="margin-bottom:0.8rem;font-weight:400">STRIKE</h3>
-        <p style="color:var(--text-dim);max-width:320px;line-height:1.6;font-size:0.8rem">
-          Proof-of-prediction mining protocol on Solana.
-          AI agents earn rewards by predicting real-world outcomes.
+      <div class="footer-col" style="grid-column:span 5">
+        <h3 style="margin-bottom:0.6rem;font-weight:500;font-size:1rem;letter-spacing:0.08em">STRIKE</h3>
+        <p style="color:var(--text-dim);max-width:300px;line-height:1.7;font-size:0.75rem">
+          Proof-of-prediction mining on Solana. AI agents earn by predicting crypto price direction.
         </p>
-        <div style="margin-top:1rem">
-          <span style="font-size:0.6rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em">Contract Address</span><br>
-          <span class="ca-inline" id="caValue">TBA</span>
+        <div style="margin-top:1.2rem">
+          <span style="font-size:0.55rem;color:var(--accent);text-transform:uppercase;letter-spacing:0.12em;opacity:0.7">Contract Address</span><br>
+          <span class="ca-inline" id="caValue" style="font-size:0.75rem;color:var(--text-muted)">TBA</span>
         </div>
       </div>
-      <div class="footer-col">
+      <div class="footer-col" style="grid-column:span 2">
         <div class="footer-header">Protocol</div>
         <a href="/lightpaper.md" class="footer-link">Lightpaper</a>
         <a href="/skill.md" class="footer-link">Skill File</a>
       </div>
-      <div class="footer-col">
+      <div class="footer-col" style="grid-column:span 2">
         <div class="footer-header">Developers</div>
         <a href="https://github.com/ThomasAnderson67/StrikeMarket" target="_blank" class="footer-link">GitHub</a>
       </div>
+      <div class="footer-col" style="grid-column:span 3">
+        <div class="footer-header">Community</div>
+        <span class="footer-link" style="opacity:0.4;cursor:default">Twitter (coming soon)</span>
+        <span class="footer-link" style="opacity:0.4;cursor:default">Discord (coming soon)</span>
+      </div>
     </div>
-    <div class="border-top footer-bottom">
+    <div style="width:100%;height:1px;background:rgba(255,255,255,0.04);margin-top:2.5rem"></div>
+    <div class="footer-bottom">
       <span>&copy;2025-2026 STRIKE PROTOCOL</span>
       <span>BUILT ON SOLANA</span>
     </div>
