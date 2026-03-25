@@ -32,17 +32,15 @@ import fs from "fs";
 // ── Config ──────────────────────────────────────────────────────────
 
 const RPC_URL = "https://api.devnet.solana.com";
-const PROGRAM_ID = new PublicKey("44aVv3wfjoCsUbcRNym8CQuTLtRW36Msq4DWEnZzYmSg");
+const PROGRAM_ID = new PublicKey("FqHFuyBQAa8kMLckBEX9xUAoMtctUfxWup9pCDi6ChQL");
 const STRK_MINT = new PublicKey("DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk");
 
-// Continuous-mining epoch timing for devnet testing.
-// epoch_duration = 600s (10 min). Production would be 86400s (24h).
-// Commit and reveal windows span the entire epoch so miners can
-// participate at any point — no gap between phases.
-const EPOCH_DURATION = 1800;          // 10 minutes (production: 86400 = 24h)
-const COMMIT_END_OFFSET = 1800;      // commit open for entire epoch
-const REVEAL_START_OFFSET = 0;      // reveal opens at epoch start
-const REVEAL_END_OFFSET = 1800;      // reveal open for entire epoch
+// Production epoch timing: 24h epochs with overlapping commit/reveal windows.
+// Both commit and reveal are open the entire epoch for continuous mining.
+const EPOCH_DURATION = 86400;         // 24 hours
+const COMMIT_END_OFFSET = 86400;     // commit open for entire epoch
+const REVEAL_START_OFFSET = 0;       // reveal opens at epoch start
+const REVEAL_END_OFFSET = 86400;     // reveal open for entire epoch
 const MARKET_COUNT = 7;             // 7 crypto tokens
 
 // ── Helpers ─────────────────────────────────────────────────────────

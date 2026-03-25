@@ -6,7 +6,7 @@ mod state;
 
 use instructions::*;
 
-declare_id!("44aVv3wfjoCsUbcRNym8CQuTLtRW36Msq4DWEnZzYmSg");
+declare_id!("FqHFuyBQAa8kMLckBEX9xUAoMtctUfxWup9pCDi6ChQL");
 
 #[program]
 pub mod strike {

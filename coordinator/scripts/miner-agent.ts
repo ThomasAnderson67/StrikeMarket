@@ -50,7 +50,7 @@ const COORDINATOR_URL =
   "https://strike-coordinator-production.up.railway.app";
 const RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const PROGRAM_ID = new PublicKey(
-  process.env.PROGRAM_ID || "44aVv3wfjoCsUbcRNym8CQuTLtRW36Msq4DWEnZzYmSg"
+  process.env.PROGRAM_ID || "FqHFuyBQAa8kMLckBEX9xUAoMtctUfxWup9pCDi6ChQL"
 );
 const STRK_MINT = new PublicKey(
   "DtGRMG6Qw47Rqm6bQ6aY32TPv6Q9rUaSBzZezHpM3sHk"
