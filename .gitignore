@@ -12,3 +12,5 @@ test-ledger/
 coordinator/miner-keypair.json
 coordinator/reveal-data-*.json
 references/
+CLAUDE.md
+TODOS.md

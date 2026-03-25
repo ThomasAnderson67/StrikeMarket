@@ -1,7 +1,7 @@
 {
   "address": "44aVv3wfjoCsUbcRNym8CQuTLtRW36Msq4DWEnZzYmSg",
   "metadata": {
-    "name": "enelbot",
+    "name": "strike",
     "version": "0.1.0",
     "spec": "0.1.0",
     "description": "Proof-of-prediction mining protocol on Solana"
@@ -641,7 +641,7 @@
           }
         },
         {
-          "name": "enel_mint"
+          "name": "strk_mint"
         },
         {
           "name": "admin",
@@ -1422,7 +1422,7 @@
             "type": "pubkey"
           },
           {
-            "name": "enel_mint",
+            "name": "strk_mint",
             "type": "pubkey"
           },
           {

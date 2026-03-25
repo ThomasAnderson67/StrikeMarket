@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-enelbot = "44aVv3wfjoCsUbcRNym8CQuTLtRW36Msq4DWEnZzYmSg"
+strike = "44aVv3wfjoCsUbcRNym8CQuTLtRW36Msq4DWEnZzYmSg"
 
 [programs.devnet]
-enelbot = "44aVv3wfjoCsUbcRNym8CQuTLtRW36Msq4DWEnZzYmSg"
+strike = "44aVv3wfjoCsUbcRNym8CQuTLtRW36Msq4DWEnZzYmSg"
 
 [registry]
 url = "https://api.apr.dev"

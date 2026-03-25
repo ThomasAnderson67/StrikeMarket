@@ -88,7 +88,7 @@ async function main() {
   const provider = new anchor.AnchorProvider(connection, wallet, { commitment: "confirmed" });
 
   // Load IDL from the built program
-  const idlPath = new URL("../../strike-program/target/idl/enelbot.json", import.meta.url); // IDL path matches Anchor's output dir (program module is still named "enelbot")
+  const idlPath = new URL("../../strike-program/target/idl/strike.json", import.meta.url);
   const idl = JSON.parse(fs.readFileSync(idlPath, "utf-8"));
   const program = new anchor.Program(idl, provider);
 
@@ -128,7 +128,7 @@ async function main() {
         globalState,
         epochState: epochState1,
         vault,
-        enelMint: STRK_MINT,
+        strkMint: STRK_MINT,
         admin: admin.publicKey,
         systemProgram: SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
@@ -151,7 +151,7 @@ async function main() {
   const gs = await (program.account as any).globalState.fetch(globalState);
   const currentEpochId = gs.currentEpoch.toNumber();
   console.log(`  admin:              ${gs.admin.toBase58()}`);
-  console.log(`  enel_mint:          ${gs.enelMint.toBase58()}`);
+  console.log(`  strk_mint:          ${gs.strkMint.toBase58()}`);
   console.log(`  current_epoch:      ${currentEpochId}`);
   console.log(`  epoch_duration:     ${gs.epochDuration.toNumber()}s`);
   console.log(`  commit_end_offset:  ${gs.commitEndOffset.toNumber()}s`);
